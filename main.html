@@ -336,6 +336,27 @@ body{background:#fbf9f8;color:#2a3142;letter-spacing:-.005em}
   min-width: 16px !important;
   flex-shrink: 0 !important;
 }
+
+/* ── ITCOMMAND V4: fast logout feedback (only logout-specific UI) ── */
+.it-logout-layer{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;background:rgba(19,23,42,.65);-webkit-backdrop-filter:blur(13px);backdrop-filter:blur(13px);animation:it-logout-fade .2s ease-out}
+.it-logout-card{position:relative;overflow:hidden;width:min(420px,100%);border:1px solid rgba(255,255,255,.78);border-radius:26px;background:#fff;padding:35px 28px 30px;box-shadow:0 30px 105px #111b326b;text-align:center}
+.it-logout-card:before{content:'';position:absolute;left:0;right:0;top:0;height:7px;background:linear-gradient(90deg,#fc6e27,#ff9d68,#ff5372)}
+.it-logout-icon{width:70px;height:70px;display:grid;place-items:center;margin:7px auto 20px;border-radius:22px;background:linear-gradient(140deg,#ffede3,#fff7f3);color:#ed6c30;border:1px solid #ffe0d1;box-shadow:0 12px 29px #fc80402a}
+.it-logout-icon svg{width:30px;height:30px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.it-logout-spin{animation:it-logout-turn .8s linear infinite;transform-origin:center}
+.it-logout-card .it-logout-label{font-size:10px;font-weight:800;color:#ef6c2e;letter-spacing:.13em;text-transform:uppercase}
+.it-logout-card h2{margin:10px 0 8px;color:#252c41;font-size:clamp(20px,5vw,25px);line-height:1.25;letter-spacing:-.055em;font-weight:800}
+.it-logout-card p{margin:0 auto;color:#8b97a8;line-height:1.75;font-size:12px;max-width:320px}
+.it-logout-progress{margin:24px auto 1px;height:5px;border-radius:50px;background:#fff0e9;overflow:hidden}
+.it-logout-progress span{display:block;height:100%;width:45%;border-radius:inherit;background:linear-gradient(90deg,#fc7930,#ff6471);animation:it-logout-progress 1s ease-in-out infinite}
+@keyframes it-logout-turn{to{transform:rotate(360deg)}}
+@keyframes it-logout-fade{from{opacity:0}to{opacity:1}}
+@keyframes it-logout-progress{from{transform:translateX(-110%)}to{transform:translateX(240%)}}
+@media(prefers-reduced-motion:reduce){.it-logout-layer,.it-logout-spin,.it-logout-progress span{animation:none!important}}
+/* FAST FORMS — responsive button state without page flashes */
+.it-inline-spinner{display:inline-block;width:14px;height:14px;margin-right:7px;border:2px solid #ffffff70;border-top-color:#fff;border-radius:50%;vertical-align:-3px;animation:spin .65s linear infinite}
+#submitRecord:disabled{opacity:.8;cursor:progress;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.it-inline-spinner{animation:none;border-color:#fff}}
 </style></head>
 <body><div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="brand-mark">⌘</div><div><b>itcommand.</b><small>DEVELOPMENT COMMAND CENTER</small></div></div><nav class="nav-scroll" id="nav" aria-label="Main navigation"></nav><div class="sidefoot"><div class="avatar" id="sideAvatar">D</div><div class="user-short"><b id="sideName">Developer</b><small id="sideEmail">Loading account…</small></div><button type="button" data-action="logout" title="Logout">↪</button></div></aside><div class="mobile-backdrop" id="mobileBackdrop"></div>
 <div class="main">
@@ -493,6 +514,62 @@ function askConfirm(title,message,positive='Lanjutkan',danger=false){return new 
  bg.querySelector('[data-no]').onclick=()=>close(false);bg.querySelector('[data-yes]').onclick=()=>close(true);bg.addEventListener('click',e=>{if(e.target===bg)close(false)});
  document.body.append(bg);bg.querySelector('[data-no]').focus();
 });}
+/**
+ * Logout cepat tanpa menunggu latency Apps Script.
+ * 1) Ambil kredensial yang masih aktif; 2) mulai revoke di backend (keepalive);
+ * 3) hapus sesi lokal SEKETIKA; 4) alihkan ke login paling lambat ~1 detik.
+ * Jika jaringan gagal, sesi browser tetap terhapus. Pencabutan sesi server
+ * bersifat best-effort hingga backend memberi respons.
+ */
+let IT_logoutBusy=false;
+async function IT_fastLogout(){
+ if(IT_logoutBusy)return;
+ const confirmed=await askConfirm('Keluar dari workspace?','Sesi akun pada browser ini akan diakhiri. Data proyek yang tersimpan tetap aman.','Ya, keluar',true);
+ if(!confirmed||IT_logoutBusy)return;
+ IT_logoutBusy=true;
+ const started=performance.now();
+ const layer=document.createElement('div');
+ layer.className='it-logout-layer';layer.setAttribute('role','alertdialog');layer.setAttribute('aria-modal','true');layer.setAttribute('aria-labelledby','itLogoutHeading');
+ layer.innerHTML=`<div class="it-logout-card"><div class="it-logout-icon" id="itLogoutIcon"><svg class="it-logout-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6.5L20 12M4 12l2 5.5A7 7 0 0 0 18.4 15"/></svg></div><span class="it-logout-label">ITCOMMAND / ACCOUNT SECURITY</span><h2 id="itLogoutHeading">Sedang mengakhiri sesi…</h2><p id="itLogoutDetail">Menutup akses workspace pada perangkat ini dengan aman.</p><div class="it-logout-progress" aria-hidden="true"><span></span></div></div>`;
+ document.body.append(layer);
+ document.body.setAttribute('aria-busy','true');
+ try{
+   // Snapshot token HARUS dibuat sebelum ITAuth.clear(), agar bisa revoke server.
+   const snapshot=typeof ITAuth.current==='function'?ITAuth.current():null;
+   const token=snapshot?.idToken||'';
+   const session=snapshot?.serverSession||'';
+   const apiURL=window.APP_CONFIG?.API_URL||'/api/proxy';
+   let revoke=Promise.resolve(false);
+   if(token&&session){
+     // keepalive memungkinkan browser melanjutkan POST walau halaman sedang ditutup.
+     revoke=fetch(apiURL,{method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({action:'revokeSession',payload:{},token,session}),keepalive:true})
+       .then(async res=>{const body=await res.json();if(!res.ok||!body?.success)throw Error(body?.error?.message||'Server belum mengonfirmasi revoke');return true;})
+       .catch(err=>{console.warn('[ITCOMMAND LOGOUT] Revocation belum terkonfirmasi:',err.message);return false;});
+   }
+   // Pembersihan lokal tidak lagi menunggu Google Apps Script (hingga 25 detik).
+   try{ITAuth.clear();}catch(err){console.warn('[ITCOMMAND LOGOUT] local clear:',err);}
+   try{localStorage.removeItem('it_session');sessionStorage.removeItem('it_session');}catch(_){}
+   S.requestId++;S.formReqId++;S.cache.clear();S.viewCache.clear();S.projects=[];S.user=null;
+   layer.querySelector('#itLogoutHeading').textContent='Sesi browser diakhiri';
+   layer.querySelector('#itLogoutDetail').textContent='Mengalihkan ke halaman login. Data kamu tetap tersimpan.';
+   layer.querySelector('#itLogoutIcon').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
+   const result=await Promise.race([revoke,new Promise(resolve=>setTimeout(()=>resolve('pending'),850))]);
+   // Waktu minimum agar status sukses benar-benar terlihat, tanpa spinner menggantung.
+   const elapsed=performance.now()-started;
+   if(elapsed<430)await new Promise(resolve=>setTimeout(resolve,430-elapsed));
+   console.info(`[ITCOMMAND LOGOUT] Local session cleared; server revoke ${result===true?'confirmed':result==='pending'?'in progress':'unconfirmed'}; ${Math.round(performance.now()-started)}ms`);
+ }catch(err){
+   console.warn('[ITCOMMAND LOGOUT] Fallback sign-out:',err);
+   try{ITAuth.clear();}catch(_){}
+   try{localStorage.removeItem('it_session');sessionStorage.removeItem('it_session');}catch(_){}
+ }finally{
+   window.location.replace('index.html');
+ }
+}
+// Hindari menampilkan halaman lama dari back/forward cache setelah sesi dihapus.
+window.addEventListener('pageshow',event=>{if(event.persisted&&typeof ITAuth.hasSession==='function'&&!ITAuth.hasSession())window.location.replace('index.html');});
+
 function routeKey(){return JSON.stringify([S.route,S.page,S.query,S.sort,S.sortDir,S.filterProject,S.selectedId,S.detailTab,S.view,S.archivedFilter||'']);}
 function skeleton(route){
  const block=(w,h=12)=>`<div class="sk" style="width:${w};height:${h}px"></div>`;
@@ -534,7 +611,7 @@ function projectSelect(id='filterProject',value='',allLabel='All projects'){retu
 function userInit(user){S.user=user;const text=(user.name||user.email||'Developer');$('sideName').textContent=text;$('sideEmail').textContent=user.email||'';
  ['sideAvatar','topAvatar'].forEach(id=>{const node=$(id);node.replaceChildren();const u=urlSafe(user.photoURL);if(u){const img=document.createElement('img');img.src=u;img.alt='Avatar';img.referrerPolicy='no-referrer';node.append(img);}else node.textContent=text.charAt(0).toUpperCase();});}
 function setContent(html){$('app').innerHTML=html;}
-async function renderRoute(){
+async function renderRoute({keepContent=false}={}){
  const navStarted=performance.now();const routeName=S.route;
  const seq=++S.requestId,key=routeKey();
  const prev=S.viewCache.get(key);
@@ -543,16 +620,30 @@ async function renderRoute(){
    S.currentTable=prev.table;S.currentList=prev.list;S.rows=prev.rows;setContent(prev.html);postRender();const ms=Math.round(performance.now()-navStarted);IT_TIMING.navigation.push({route:routeName,ms,source:'memory'});console.info(`[ITCOMMAND NAV] ${routeName} • ${ms}ms • MEMORY CACHE`);return;
  }
  // Clear the previous module synchronously. Never display module A beneath active tab B.
- S.currentTable='';S.currentList=null;S.rows=[];setContent(skeleton(S.route));
+ if(!keepContent){S.currentTable='';S.currentList=null;S.rows=[];setContent(skeleton(S.route));}
  try{let h;
   switch(S.route){case 'overview':h=await overview();break;case 'projects':h=await projects();break;case 'workspace':h=await workspace();break;
    case 'activity':h=await activity();break;case 'analytics':h=await analytics();break;case 'backup':h=backup();break;case 'settings':h=await settings();break;
    default:h=await generic(S.route);}
   if(seq!==S.requestId)return;
-  setContent(h);S.viewCache.set(key,{at:Date.now(),html:h,table:S.currentTable,list:S.currentList,rows:S.rows});
+  const previousY=keepContent?window.scrollY:null;
+  let onlyRecords=false;
+  if(keepContent&&(routeName==='projects'||definitions[routeName])){
+   const oldMount=$('app').querySelector('[data-it-records]');
+   if(oldMount){
+    const temp=document.createElement('div');temp.innerHTML=h;
+    const newMount=temp.querySelector('[data-it-records]');
+    if(newMount){oldMount.replaceWith(newMount);onlyRecords=true;}
+   }
+  }
+  if(!onlyRecords)setContent(h);
+  if(previousY!==null&&typeof window.scrollTo==='function')window.scrollTo(0,previousY);
+  if(onlyRecords)console.info(`[ITCOMMAND UI] ${routeName} • list updated in place`);
+  S.viewCache.set(key,{at:Date.now(),html:h,table:S.currentTable,list:S.currentList,rows:S.rows});
   if(S.viewCache.size>28)S.viewCache.delete(S.viewCache.keys().next().value);
   postRender();const ms=Math.round(performance.now()-navStarted);IT_TIMING.navigation.push({route:routeName,ms,source:'api'});if(IT_TIMING.navigation.length>60)IT_TIMING.navigation.shift();console.info(`[ITCOMMAND NAV] ${routeName} • ${ms}ms • API RENDER`);
  }catch(e){if(seq!==S.requestId)return;
+  if(keepContent){console.warn('[ITCOMMAND UI] Background repaint failed',e);toast('Data tersimpan. Coba refresh modul untuk memperbarui tampilan.','error');return;}
   setContent(head('Gagal memuat modul','Data belum berhasil diambil dari Google Apps Script. Data lain tetap aman.')+`<div class="panel panel-pad"><h3 style="font-size:15px;margin-bottom:10px">Koneksi perlu diperiksa</h3><p class="sub">${esc(e.message)}</p><div style="margin-top:18px">${btn('↻ Coba lagi','refresh')}</div></div>`);error(e);
  }
 }
@@ -1162,6 +1253,7 @@ async function projects() {
     <!-- ═════════════════════════════════════════════════════════════
          C. PROJECT CARDS GRID / TABLE VIEW
          ═════════════════════════════════════════════════════════════ -->
+<div data-it-records class="it-live-records">
     ${d.items.length 
       ? (S.view === 'grid' 
           ? `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">${d.items.map(projectCard).join('')}</div>` 
@@ -1170,6 +1262,7 @@ async function projects() {
 
     <!-- Pagination -->
     ${pager(d)}
+    </div><!-- /it-live-records -->
 
   </div>
   `;
@@ -1584,12 +1677,14 @@ async function generic(route) {
     <!-- ═════════════════════════════════════════════════════════════
          C. UNIVERSAL LUXURY DATA TABLE (WARM SURFACE, ANTI-NYUNGSEP)
          ═════════════════════════════════════════════════════════════ -->
+<div data-it-records class="it-live-records">
     ${d.items.length 
       ? renderTable(d.items, def.cols, def.table) 
       : empty('Belum ada data pada modul ini', 'Mulai tambahkan catatan teknis pertama kamu dan tautkan ke proyek yang aktif.')}
 
     <!-- Pagination -->
     ${pager(d)}
+    </div><!-- /it-live-records -->
 
   </div>
   `;
@@ -3062,27 +3157,65 @@ function formField(f,value){const id='f_'+f.key,v=str(value),required=f.required
 }
 function openDrawer(title,body,footer){$('drawerTitle').textContent=title;$('drawerBody').innerHTML=body;$('drawerFoot').innerHTML=footer||'';$('overlay').classList.add('open');$('drawer').classList.add('open');document.body.classList.add('overflow-hidden');}
 function closeDrawer(){S.formReqId++;document.activeElement?.blur();$('overlay').classList.remove('open');$('drawer').classList.remove('open');$('drawerBody').innerHTML='';$('drawerFoot').innerHTML='';document.body.classList.remove('overflow-hidden');}
+// FAST FORM — do not make a network round-trip for a create form or an already visible record.
+function formCachedRow(table,id){
+ if(!id)return null;
+ if(table==='Projects'){const p=S.projects.find(x=>x.id===id);if(p)return p;}
+ if(S.currentTable===table){const p=(S.rows||[]).find(x=>x.id===id);if(p)return p;}
+ for(const [key,entry] of S.cache){
+  if((key.startsWith('list:'+table+'{')||(table==='Projects'&&key==='projects:all'))&&entry?.value?.items){
+   const p=entry.value.items.find(x=>x.id===id);if(p)return p;
+  }
+ }
+ return null;
+}
+function buildRecordForm(table,id,def,data){
+ const selected=table!=='Projects'?(data.projectId||S.selectedId||S.filterProject||''):'';
+ S.editId=id;S.formTable=table;
+ const active=S.projects.filter(p=>!p.archivedAt);
+ if(table!=='Projects'&&!active.length)throw new Error('Buat proyek dahulu agar record dapat dikaitkan.');
+ const pField=table==='Projects'?'':`<div class="form-field full"><label for="recordProject">Related project *</label><select id="recordProject" name="projectId" required>${S.projects.filter(p=>!p.archivedAt||p.id===selected).map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`;
+ const basic=table==='Projects'?9:Math.min(6,def.fields.length);
+ const groups=`<div class="form-section"><span class="form-step">01</span><span class="form-section-copy">${table==='Projects'?'Informasi utama proyek':'Informasi utama'}<small>Isi informasi yang diperlukan sebelum menyimpan data.</small></span></div>${pField}${def.fields.slice(0,basic).map(f=>formField(f,data[f.key]??'')).join('')}`;
+ const extra=def.fields.slice(basic),detail=extra.length?`<details class="form-advanced" ${id?'open':''}><summary>✦ 02 / Detail lanjutan & konfigurasi (${extra.length})</summary><div class="form-grid">${extra.map(f=>formField(f,data[f.key]??'')).join('')}</div></details>`:'';
+ // Build only once (no drawer close/reopen); keep the drawer mounted and its animation stable.
+ const title=(id?'Edit ':'Add ')+def.title;
+ $('drawerTitle').textContent=title;
+ $('drawerBody').innerHTML=`<p class="drawer-intro">${id?'Perbarui informasi proyek agar seluruh aset teknis tetap sinkron.':'Data yang kamu simpan akan tertaut ke workspace pribadi dan dapat diubah kapan saja.'}</p><form id="recordForm" class="form-grid">${groups}${detail}<input type="hidden" name="id" value="${esc(id)}"></form>`;
+ $('drawerFoot').innerHTML=`<button type="button" class="btn" data-action="closeDrawer">Batal</button>${table==='ProjectReleases'?'<button type="button" class="btn" data-action="generateChangelog">Generate Changelog</button>':''}<button type="submit" form="recordForm" class="btn primary" id="submitRecord">${id?'Simpan perubahan':'Simpan data'}</button>`;
+ $('drawerBody').scrollTop=0;
+}
 async function openForm(table,id=''){
- const req=++S.formReqId;const def=table==='Projects'?{title:'IT Project',fields:projectFields}:Object.values(definitions).find(x=>x.table===table);
+ const t=performance.now(),req=++S.formReqId;
+ const def=table==='Projects'?{title:'IT Project',fields:projectFields}:Object.values(definitions).find(x=>x.table===table);
  if(!def){error(new Error('Modul tidak ditemukan.'));return;}
+ // For new records, use already loaded project names; only query on a cold cache.
+ const needsProjects=table!=='Projects'&&!S.projects.length;
+ const localRow=formCachedRow(table,id);
+ const needsRecord=Boolean(id)&&!localRow;
+ const defaults=table==='Projects'?{type:'Website',status:'Planning',priority:'Medium',progress:'0',favorite:'false'}:{};
+ const fastPath=!needsProjects&&!needsRecord;
+ if(fastPath){
+  try{
+   openDrawer((id?'Edit ':'Add ')+def.title,'','');
+   buildRecordForm(table,id,def,localRow||defaults);
+   console.info(`[ITCOMMAND FORM] ${table} • ${Math.round(performance.now()-t)}ms • LOCAL`);
+  }catch(e){if(req===S.formReqId){closeDrawer();error(e);}}
+  return;
+ }
+ // Loading skeleton only when real remote data is genuinely required (rare).
  openDrawer((id?'Edit ':'Add ')+def.title,
- `<div class="form-grid"><div class="form-section">Menyiapkan formulir</div>${Array.from({length:6},(_,i)=>`<div class="form-field"><div class="sk" style="width:42%;height:11px;margin-bottom:10px"></div><div class="sk" style="height:45px"></div></div>`).join('')}</div>`,
- '<button class="btn" data-action="closeDrawer">Tutup</button>');
+ `<div class="form-grid"><div class="form-section">Memuat informasi</div>${Array.from({length:4},()=>'<div class="form-field"><div class="sk" style="width:42%;height:11px;margin-bottom:10px"></div><div class="sk" style="height:45px"></div></div>').join('')}</div>`,
+ '<button type="button" class="btn" data-action="closeDrawer">Tutup</button>');
  try{
-  if(table!=='Projects')await loadProjects();
-  const data=id?await ITAPI.call('get',{id},table):(table==='Projects'?{type:'Website',status:'Planning',priority:'Medium',progress:'0',favorite:'false'}:{});
+  const jobs=[];
+  if(needsProjects)jobs.push(loadProjects());
+  const rowPromise=needsRecord?ITAPI.call('get',{id},table):Promise.resolve(localRow||defaults);
+  jobs.push(rowPromise);
+  const values=await Promise.all(jobs);
   if(req!==S.formReqId)return;
-  const selected=table!=='Projects'?(data.projectId||S.selectedId||S.filterProject||''):'';
-  S.editId=id;S.formTable=table;
-  const active=S.projects.filter(p=>!p.archivedAt);
-  if(table!=='Projects'&&!active.length)throw new Error('Buat proyek dahulu agar record dapat dikaitkan.');
-  const pField=table==='Projects'?'':`<div class="form-field full"><label for="recordProject">Related project *</label><select id="recordProject" name="projectId" required>${S.projects.filter(p=>!p.archivedAt||p.id===selected).map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`;
-  const basic=table==='Projects'?9:Math.min(6,def.fields.length);
-  const groups=`<div class="form-section"><span class="form-step">01</span><span class="form-section-copy">${table==='Projects'?'Informasi utama proyek':'Informasi utama'}<small>Isi informasi yang diperlukan sebelum menyimpan data.</small></span></div>${pField}${def.fields.slice(0,basic).map(f=>formField(f,data[f.key]??'')).join('')}`;
-  const extra=def.fields.slice(basic),detail=extra.length?`<details class="form-advanced" ${id?'open':''}><summary>✦ 02 / Detail lanjutan & konfigurasi (${extra.length})</summary><div class="form-grid">${extra.map(f=>formField(f,data[f.key]??'')).join('')}</div></details>`:'';
-  openDrawer((id?'Edit ':'Add ')+def.title,`<p class="drawer-intro">${id?'Perbarui informasi proyek agar seluruh aset teknis tetap sinkron.':'Data yang kamu simpan akan tertaut ke workspace pribadi dan dapat diubah kapan saja.'}</p><form id="recordForm" class="form-grid">${groups}${detail}<input type="hidden" name="id" value="${esc(id)}"></form>`,
-  `<button class="btn" data-action="closeDrawer">Batal</button>${table==='ProjectReleases'?'<button class="btn" data-action="generateChangelog">Generate Changelog</button>':''}<button class="btn primary" id="submitRecord" data-action="submitRecord">${id?'Simpan perubahan':'Simpan data'}</button>`);
-  $('drawerBody').scrollTop=0;
+  buildRecordForm(table,id,def,values[values.length-1]||defaults);
+  console.info(`[ITCOMMAND FORM] ${table} • ${Math.round(performance.now()-t)}ms • API`);
  }catch(e){if(req===S.formReqId){closeDrawer();error(e);}}
 }
 async function generateChangelog(){try{const form=$('recordForm'),projectId=new FormData(form).get('projectId');if(!projectId)throw new Error('Pilih proyek lebih dulu.');
@@ -3092,17 +3225,97 @@ async function generateChangelog(){try{const form=$('recordForm'),projectId=new 
  const text=`## ${version} — Changelog\n\n### New Features\n${features.length?features.map(x=>'- '+x.title).join('\n'):'- None recorded'}\n\n### Bug Fixes\n${bugs.length?bugs.map(x=>'- '+x.title).join('\n'):'- None recorded'}`;
  form.elements.namedItem('notes').value=text;toast('Changelog generated from released features and resolved bugs (review before saving).');
  }catch(e){error(e);}}
-async function saveForm(){const form=$('recordForm');if(!form||S.saveBusy)return;if(!form.reportValidity())return;S.saveBusy=true;const obj=Object.fromEntries(new FormData(form).entries());
- // Strong client-side safeguard: reject non-http(s) URLs; server also treats URLs as inert data.
- for(const f of (S.formTable==='Projects'?projectFields:Object.values(definitions).find(d=>d.table===S.formTable).fields)){
+// Patch the visible route and its matching memory cache AFTER the server confirms a write.
+// Other module caches are invalidated narrowly, avoiding a cold reload of every tab.
+function fastListArgs(table){
+ if(S.route==='projects'&&table==='Projects')return {page:S.page,pageSize:APP_CONFIG.DEFAULT_PAGE_SIZE,query:S.query,archived:S.archivedFilter||'no'};
+ if(definitions[S.route]?.table===table)return {page:S.page,pageSize:APP_CONFIG.DEFAULT_PAGE_SIZE,query:S.query,projectId:S.filterProject};
+ if(S.route==='workspace'&&S.detailTab&&definitions[S.detailTab]?.table===table)return {page:1,pageSize:50,projectId:S.selectedId};
+ return null;
+}
+function matchVisibleRecord(row,table){
+ if(table==='Projects'){
+  const archived=!!row.archivedAt,filter=S.archivedFilter||'no';
+  if(filter==='no'&&archived)return false;
+  if(filter==='yes'&&!archived)return false;
+ }else if(S.filterProject&&row.projectId!==S.filterProject)return false;
+ const q=String(S.query||'').toLowerCase();
+ return !q||Object.values(row).some(v=>typeof v==='string'&&v.toLowerCase().includes(q));
+}
+function applyConfirmedMutation(table,action,result,payload){
+ const id=result?.id||payload?.id;
+ const deleting=action==='delete'||!!result?.deleted;
+ const archivedAction=action==='archive'||action==='restore';
+ const row=deleting?null:(!result?.id?{...payload,id}:result);
+ const update=(items,filter=false)=>{
+  const original=Array.isArray(items)?items:[];
+  const oldIndex=original.findIndex(r=>r.id===id);
+  const next=original.filter(r=>r.id!==id);
+  // Only add a new item when it belongs to the active view.
+  if(row&&(!filter||matchVisibleRecord(row,table))){
+   if(oldIndex>=0)next.splice(Math.min(oldIndex,next.length),0,row);
+   else next.unshift(row);
+  }
+  return next;
+ };
+ // Clear only data that really became stale: dashboards, activity, other filter/page views.
+ for(const key of [...S.cache.keys()]){
+  if(key==='dashboard'||key==='analytics'||key.startsWith('list:'+table+'{')||key.startsWith('activity'))S.cache.delete(key);
+ }
+ if(table==='Projects'){
+  S.projects=update(S.projects);
+  S.cache.set('projects:all',{value:{items:S.projects,total:S.projects.length,page:1,pageSize:100},t:Date.now()});
+ }
+ const args=fastListArgs(table);
+ if(S.currentTable===table&&args&&S.currentList?.items){
+  const prev=S.currentList;
+  const existed=prev.items.some(r=>r.id===id);
+  const nextItems=update(prev.items,true);
+  const nowExists=nextItems.some(r=>r.id===id);
+  const delta=(nowExists?1:0)-(existed?1:0);
+  const next={...prev,items:nextItems.slice(0,Math.max(1,Number(args.pageSize)||25)),total:Math.max(0,(Number(prev.total)||0)+delta)};
+  S.currentList=next;S.rows=next.items;
+  S.cache.set('list:'+table+JSON.stringify(args),{value:next,t:Date.now()});
+ }
+ S.viewCache.clear();
+ return !!(args&&S.currentTable===table&&S.cache.has('list:'+table+JSON.stringify(args)));
+}
+async function finishMutationUI(table,action,result,payload,originRoute){
+ const inCurrent=applyConfirmedMutation(table,action,result,payload);
+ // If the user switched tabs while saving, never force them back to the previous page.
+ if(S.route!==originRoute)return;
+ // Rebuild with warm memory data where possible; no skeleton, blank page or full navigation.
+ // When there is no warm list (dashboard / workspace), refresh without blanking the visible page.
+ await renderRoute({keepContent:true});
+}
+async function saveForm(){
+ const form=$('recordForm');
+ if(!form||S.saveBusy||!form.reportValidity())return;
+ const obj=Object.fromEntries(new FormData(form).entries());
+ const table=S.formTable,originRoute=S.route;
+ const def=table==='Projects'?{fields:projectFields}:Object.values(definitions).find(d=>d.table===table);
+ if(!def){error(new Error('Modul tidak ditemukan'));return;}
+ for(const f of def.fields){
   if(f.type==='url'&&obj[f.key]&&!urlSafe(obj[f.key])){error(new Error('URL '+f.label+' harus dimulai http:// atau https://'));return;}
  }
- const submit=$('submitRecord');submit.disabled=true;submit.textContent='Saving…';
- try{const result=await ITAPI.call('save',obj,S.formTable);invalidate();closeDrawer();toast(result.name||result.title?`Tersimpan: ${result.name||result.title}`:'Data berhasil disimpan.');
-  if(S.formTable==='Projects')S.projects=[];await renderRoute();
- }catch(e){error(e);}finally{S.saveBusy=false;if(document.body.contains(submit)){submit.disabled=false;submit.textContent='Save';}}
+ S.saveBusy=true;
+ const submit=$('submitRecord');
+ const label=submit?.textContent||'Simpan data';
+ if(submit){submit.disabled=true;submit.innerHTML='<span class="it-inline-spinner" aria-hidden="true"></span> Menyimpan data…';}
+ const started=performance.now();
+ try{
+  const result=await ITAPI.call('save',obj,table);
+  // The database has confirmed success; close promptly and use the result in local cache.
+  if($('recordForm')===form)closeDrawer();
+  toast(result.name||result.title?`Tersimpan: ${result.name||result.title}`:'Data berhasil disimpan.');
+  console.info(`[ITCOMMAND SAVE] ${table} • server confirmed ${Math.round(performance.now()-started)}ms`);
+  await finishMutationUI(table,'save',result,obj,originRoute);
+ }catch(e){error(e);}finally{
+  S.saveBusy=false;
+  if(submit?.isConnected){submit.disabled=false;submit.textContent=label;}
+ }
 }
-async function openPreview(table,id){try{const row=await ITAPI.call('get',{id},table);const def=Object.values(definitions).find(d=>d.table===table);
+async function openPreview(table,id){try{const row=formCachedRow(table,id)||await ITAPI.call('get',{id},table);const def=Object.values(definitions).find(d=>d.table===table);
  if(!def)throw new Error('Table invalid');
  S.previewText=table==='CodeSnippets'?row.code:table==='ProjectDocuments'?row.content:JSON.stringify(row,null,2);
  const content=def.fields.map(f=>`<section style="margin-bottom:19px"><div class="flex-between" style="margin-bottom:8px"><b style="font-size:11px">${esc(f.label)}</b></div><pre class="markdown" style="background:#fffcf9;padding:13px;border:1px solid #f1e8e2;border-radius:11px;max-height:350px;overflow:auto">${esc(row[f.key]||'—')}</pre></section>`).join('');
@@ -3113,9 +3326,11 @@ async function confirmDelete(table,id){
  try{await mutate('delete',table,{id});toast('Data berhasil dihapus.');}catch(e){error(e);}
 }
 async function mutate(action,table='',payload={}){
- const result=await ITAPI.call(action,payload,table);invalidate();
- if(table==='Projects'||['duplicate','archive','restore'].includes(action))S.projects=[];
- await renderRoute();return result;
+ const originRoute=S.route;
+ const target=table||(['duplicate','archive','restore'].includes(action)?'Projects':S.currentTable);
+ const result=await ITAPI.call(action,payload,table);
+ await finishMutationUI(target,action,result,payload,originRoute);
+ return result;
 }
 function download(content,name,type){const blob=new Blob([content],{type});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 function csvCell(v){let s=str(v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
@@ -3275,6 +3490,7 @@ document.addEventListener('change',e=>{
  if(e.target.id==='workspaceProject'){S.selectedId=e.target.value;S.detailTab='overview';renderRoute();}
 });
 document.addEventListener('click',async e=>{
+ if(IT_logoutBusy)return;
  const b=e.target.closest('[data-action]');if(!b)return;if(b.tagName==='A'&&b.getAttribute('href'))return;
  const action=b.dataset.action,id=b.dataset.id,table=b.dataset.table;
  try{
@@ -3304,11 +3520,15 @@ document.addEventListener('click',async e=>{
   else if(action==='exportCSV')await exportCSV();
   else if(action==='exportJSON')await exportJSON();
   else if(action==='importJSON')await importJSON();
-  else if(action==='logout'){if(await askConfirm('Keluar dari workspace?','Sesi di perangkat ini akan diakhiri. Data yang tersimpan tetap aman.','Keluar',true)){await ITAuth.logout();location.replace('index.html');}}
+  else if(action==='logout'){await IT_fastLogout();}
  }catch(err){error(err);}
 });
 document.addEventListener('submit',async e=>{
  const form=e.target;
+ if(form.id==='recordForm'){
+  e.preventDefault(); // Enter must never reload the dashboard.
+  await saveForm();return;
+ }
  if(!['profileForm','settingsForm','changeEmailForm','changePasswordForm'].includes(form.id))return;
  e.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;
  try{
