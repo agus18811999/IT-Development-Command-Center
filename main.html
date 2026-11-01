@@ -371,6 +371,62 @@ body{background:#fbf9f8;color:#2a3142;letter-spacing:-.005em}
 
 
 .pl-phase-registry{padding:2px 22px 22px;display:grid;gap:8px}.pl-phase-entry{display:flex;align-items:center;gap:12px;min-width:0;border:1px solid #f2e7e7;border-radius:13px;padding:11px 13px;background:linear-gradient(105deg,#fffdfa,#fff)}.pl-phase-entry-icon{width:34px;height:34px;display:grid;place-items:center;background:#fff0e5;border:1px solid #ffe4d0;border-radius:10px;color:#f5773f;flex:none}.pl-phase-entry-text{min-width:0;flex:1}.pl-phase-entry-text b,.pl-phase-entry-text small{display:block;overflow-wrap:anywhere}.pl-phase-entry-text b{color:#392d3b;font-size:11px}.pl-phase-entry-text small{font-size:9px;color:#a79daa;margin-top:5px}.pl-delete-btn,.pl-event-delete{color:#d85a67!important;background:#fff6f7!important;border-color:#f5dadd!important}.pl-event-delete{margin-left:-7px}@media(max-width:650px){.pl-calendar-grid{min-width:0;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}.pl-weekday{font-size:8px;padding:8px 0}.pl-day{padding:4px;min-height:69px;gap:5px;border-radius:8px}.pl-day-number{font-size:10px}.pl-day-number i{display:none}.pl-day-events{flex-direction:row;flex-wrap:wrap;gap:3px}.pl-day-event{width:7px;height:7px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}.pl-day-event i{width:5px;height:5px}.pl-day-event span{display:none}.pl-day-events small{font-size:7px}.pl-phase-registry{padding:0 12px 12px}.pl-phase-entry{flex-wrap:wrap;gap:8px}.pl-phase-entry-text{flex-basis:calc(100% - 50px)}.pl-phase-entry .tag{max-width:100px}.pl-phase-entry .pl-tool-btn{min-height:32px;padding:7px}}
+/* ── DEVELOPMENT CALENDAR LUXURY SYSTEM ── */
+.cal-board-card {
+  background: linear-gradient(160deg, #ffffff 0%, #fff9f5 50%, #ffefe3 100%);
+  border: 1px solid #fbdac7;
+  border-radius: 26px;
+  box-shadow: 0 12px 35px -10px rgba(234, 88, 12, 0.09), 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.cal-day-cell {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(251, 146, 60, 0.22);
+  border-radius: 14px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cal-day-cell:hover {
+  background: #ffffff;
+  border-color: #fb923c;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -4px rgba(234, 88, 12, 0.15);
+}
+
+.cal-day-cell.pl-today {
+  border-color: #f97316 !important;
+  background: linear-gradient(135deg, #ffffff 0%, #fff4ec 100%) !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3) !important;
+}
+
+.cal-day-cell.pl-selected {
+  border-color: #ea580c !important;
+  background: linear-gradient(135deg, #ffede2 0%, #ffe0cc 100%) !important;
+  box-shadow: 0 0 0 2.5px #f97316 !important;
+}
+
+.cal-view-pill {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.cal-view-btn {
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.cal-view-btn.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
+}
 </style></head>
 <body><div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="brand-mark">⌘</div><div><b>itcommand.</b><small>DEVELOPMENT COMMAND CENTER</small></div></div><nav class="nav-scroll" id="nav" aria-label="Main navigation"></nav><div class="sidefoot"><div class="avatar" id="sideAvatar">D</div><div class="user-short"><b id="sideName">Developer</b><small id="sideEmail">Loading account…</small></div><button type="button" data-action="logout" title="Logout">↪</button></div></aside><div class="mobile-backdrop" id="mobileBackdrop"></div>
 <div class="main">
@@ -3212,69 +3268,784 @@ function planItemAction(item){
 }
 function planEventInline(item,compact=false){return `<button type="button" class="pl-event pl-cat-${plCode(item.category)} ${compact?'pl-compact':''}" ${planItemAction(item)} title="${esc(item.title)}"><span class="pl-event-pin"></span><span>${esc(short(item.title,compact?19:39))}</span></button>`;}
 function planningHero(title,desc,actions){return head(title,desc,actions);}
-async function planningTimeline(){
- const d=await planningBundle(); S.currentTable='ProjectTimelinePhases';S.currentList=null;
- const phases=(d.phases||[]).filter(plMatches).slice().sort((a,b)=>String(a.startDate).localeCompare(String(b.startDate)));
- const today=localISO(new Date());const delayed=phases.filter(x=>x.endDate&&x.endDate<today&&x.status!=='Completed'&&Number(x.progress||0)<100);
- const active=phases.filter(x=>x.status==='In Progress');const milestones=(d.milestones||[]).filter(plMatches).filter(x=>parseISO(x.dueDate));
- const overall=phases.length?Math.round(phases.reduce((sum,p)=>sum+Number(p.progress||0),0)/phases.length):0;
- const buttons=btn('+ New phase','create','data-table="ProjectTimelinePhases"')+' '+btn('+ Add event','planNewEvent');
- const toolbar=`<div class="pl-toolbar"><div class="pl-toolbar-label"><span class="pl-live-dot"></span> Live development roadmap <small>• Data tersimpan per proyek</small></div><div class="pl-toolbar-tools">${plProjectChooser()}<button type="button" class="pl-tool-btn" data-action="refresh" aria-label="Refresh planning data">↻ Refresh</button></div></div>`;
- const kpis=`<div class="pl-kpis">${plKpi('◫','Fase terjadwal',String(phases.length),'Seluruh milestone pengembangan')}${plKpi('↗','Progress rata-rata',overall+'%','Berdasarkan fase yang dicatat')}${plKpi('◉','Sedang berjalan',String(active.length),'Aktivitas in progress')}${plKpi('⚑','Melewati target',String(delayed.length),'Perlu perhatian dan tindak lanjut')}</div>`;
- const rows=phases.filter(x=>parseISO(x.startDate));
- const dates=rows.flatMap(x=>[parseISO(x.startDate),parseISO(x.endDate||x.startDate)]).concat(milestones.map(m=>parseISO(m.dueDate))).filter(Boolean);
- const base=dates.length?new Date(Math.min(...dates.map(x=>x.getTime()))):parseISO(today);
- const last=dates.length?new Date(Math.max(...dates.map(x=>x.getTime()))):addPlanDays(base,155);
- const floor=new Date(Date.UTC(base.getUTCFullYear(),base.getUTCMonth(),1));
- const totalMonths=Math.max(6,Math.min(36,(last.getUTCFullYear()-floor.getUTCFullYear())*12+(last.getUTCMonth()-floor.getUTCMonth())+2));
- const width=totalMonths*133;const end=new Date(Date.UTC(floor.getUTCFullYear(),floor.getUTCMonth()+totalMonths,1));
- const offsetDate=iso=>Math.max(0,Math.min(width,dayDelta(floor,parseISO(iso)||floor)/Math.max(1,dayDelta(floor,end))*width));
- const months=Array.from({length:totalMonths},(_,i)=>new Date(Date.UTC(floor.getUTCFullYear(),floor.getUTCMonth()+i,1)));
- const currentX=parseISO(today)&&today>=localISO(floor)&&today<=localISO(end)?offsetDate(today):-1;
- const ticks=months.map((date,i)=>`<div class="pl-axis-month" style="left:${i*133}px;width:133px">${esc(date.toLocaleDateString('id-ID',{month:'short',year:'numeric',timeZone:'UTC'}))}</div>`).join('');
- const lanes=rows.map((r,i)=>{
-  const begin=offsetDate(r.startDate),finish=offsetDate(r.endDate||r.startDate);
-  const barWidth=Math.max(16,finish-begin);const progress=Math.max(0,Math.min(100,Number(r.progress||0)));
-  const late=r.endDate&&r.endDate<today&&!['Completed','Cancelled'].includes(r.status)&&progress<100;
-  const pins=milestones.filter(m=>m.projectId===r.projectId&&m.dueDate>=r.startDate&&m.dueDate<=(r.endDate||r.startDate)).map(m=>`<span class="pl-milestone-pin" style="left:${offsetDate(m.dueDate)}px" title="${esc(m.title)} · ${esc(m.dueDate)}">◆</span>`).join('');
-  const projectName=d.projects.find(x=>x.id===r.projectId)?.name||'Project';
-  return `<div class="pl-gantt-row"><div class="pl-gantt-label"><span class="pl-phase-num">${String(i+1).padStart(2,'0')}</span><div><b>${esc(short(r.title,32))}</b><small>${esc(short(projectName,28))} · ${esc(r.phase||'Development')}</small></div></div><div class="pl-gantt-track" style="width:${width}px;background-size:133px 100%">${currentX>=0?`<i class="pl-today-line" style="left:${currentX}px"></i>`:''}<button type="button" data-action="planEditPhase" data-id="${esc(r.id)}" class="pl-phase-bar ${late?'pl-is-late':''} pl-phase-${plCode(r.phase)}" style="left:${begin}px;width:${barWidth}px" title="${esc(r.title)} • ${progress}%"><span class="pl-phase-fill" style="width:${progress}%"></span><strong>${progress}%</strong></button>${pins}</div></div>`;
- }).join('');
- const chart=`<section class="pl-surface pl-gantt-card"><div class="pl-card-head"><div><span class="pl-overline">VISUAL ROADMAP / GANTT</span><h2>Development journey</h2><p>Geser secara horizontal untuk melihat rentang waktu. Klik fase untuk mengedit.</p></div><span class="pl-soft-pill">${totalMonths} bulan</span></div>${rows.length?`<div class="pl-gantt-scroll" tabindex="0" aria-label="Timeline proyek dapat digeser horizontal"><div class="pl-gantt-inner" style="width:${width+238}px"><div class="pl-axis"><div class="pl-axis-spacer">PROJECT / PHASE</div><div class="pl-axis-track" style="width:${width}px">${ticks}${currentX>=0?`<i class="pl-today-line" style="left:${currentX}px"></i>`:''}</div></div>${lanes}</div></div><div class="pl-legend"><span><i class="pl-dot orange"></i> Scheduled</span><span><i class="pl-dot green"></i> Completion</span><span><i class="pl-dot red"></i> Overdue</span><span><i class="pl-dot blue"></i> ◆ Milestone</span></div>`:plEmpty('Timeline belum memiliki fase','Buat fase proyek pertama untuk memunculkan roadmap interaktif.')}</section>`;
- const milestoneList=milestones.slice().sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,8);
- const endcap=`<div class="pl-bottom-grid"><section class="pl-surface pl-detail-card"><div class="pl-card-head"><div><span class="pl-overline">KEY MILESTONES</span><h2>Upcoming milestones</h2></div><button type="button" data-action="nav" data-target="workspace" class="pl-text-link">Workspace ↗</button></div>${milestoneList.length?milestoneList.map(m=>`<div class="pl-list-item"><span class="pl-list-date">${esc(fmtDate(m.dueDate))}</span><span class="pl-list-dot"></span><div class="pl-list-copy"><b>${esc(short(m.title,60))}</b><small>${esc(d.projects.find(x=>x.id===m.projectId)?.name||'Project')}</small></div>${badge(m.status||'Planned')}</div>`).join(''):plEmpty('Belum ada milestone','Tambahkan milestone dari Development Workspace.')}</section><section class="pl-surface pl-detail-card"><div class="pl-card-head"><div><span class="pl-overline">PROJECT INSIGHTS</span><h2>What needs attention?</h2></div></div>${delayed.length?delayed.slice(0,5).map(r=>`<button class="pl-attention" data-action="planEditPhase" data-id="${esc(r.id)}"><span class="pl-alert-symbol">!</span><span><b>${esc(short(r.title,55))}</b><small>Terlambat sejak ${esc(fmtDate(r.endDate))}</small></span><span>↗</span></button>`).join(''):plEmpty('Semua fase sesuai jadwal','Belum ada fase yang melewati tenggat berdasarkan data tersimpan.')}</section></div>`;
- return planningHero('Interactive Development Timeline','Visualisasikan siklus hidup software dari idea, development, testing hingga release dan maintenance.',buttons)+`<div class="pl-workspace">${toolbar}${kpis}${chart}${endcap}</div>`;
-}
-async function planningCalendar(){
- const d=await planningBundle();S.currentTable='ProjectCalendarEvents';S.currentList=null;
- const events=planCalendarItems(d);const today=localISO(new Date());const anchor=parseISO(S.planAnchor)||parseISO(today);
- const monthFirst=new Date(Date.UTC(anchor.getUTCFullYear(),anchor.getUTCMonth(),1));
- const chosen=parseISO(S.planDay)||anchor;
- const isWeek=S.planCalendarView==='week';const isAgenda=S.planCalendarView==='agenda';
- const first=isWeek?addPlanDays(anchor,-((anchor.getUTCDay()+6)%7)):addPlanDays(monthFirst,-((monthFirst.getUTCDay()+6)%7));
- const count=isWeek?7:42;
- const dates=Array.from({length:count},(_,i)=>localISO(addPlanDays(first,i)));
- const currentMonth=localISO(monthFirst).slice(0,7);
- const current=events.filter(e=>e.startDate.slice(0,7)===currentMonth);
- const deadline=events.filter(e=>['Deadline','Milestone'].includes(e.category)&&e.startDate>=today);
- const selected=events.filter(e=>planIsOnDay(e,S.planDay));
- const selectedLabel=plDay(chosen);
- const actionButtons=btn('+ Jadwalkan kegiatan','planNewEvent')+' '+btn('+ Development phase','create','data-table="ProjectTimelinePhases"');
- const kpis=`<div class="pl-kpis">${plKpi('▦','Agenda bulan ini',String(current.length),'Aktivitas pada bulan terpilih')}${plKpi('⚑','Upcoming deadlines',String(deadline.length),'Deadline dan milestones mendatang')}${plKpi('◷','Jadwal tersimpan',String((d.events||[]).filter(plMatches).length),'Agenda manual per proyek')}${plKpi('↗','Releases',String(events.filter(e=>e.category==='Release').length),'Terhubung dengan release registry')}</div>`;
- const calendarHeader=`<div class="pl-calendar-tools"><div><span class="pl-overline">YOUR DEVELOPMENT SCHEDULE</span><h2>${esc(plMonth(anchor))}</h2><p>Sinkron dari rilis, milestone, deployment, dan agenda yang kamu buat.</p></div><div class="pl-calendar-actions"><button class="pl-tool-btn" type="button" data-action="planToday">Hari ini</button><button class="pl-calendar-arrow" type="button" data-action="planStep" data-step="-1" aria-label="Periode sebelumnya">‹</button><button class="pl-calendar-arrow" type="button" data-action="planStep" data-step="1" aria-label="Periode berikutnya">›</button></div></div>`;
- const modes=`<div class="pl-view-switch" role="group" aria-label="Tampilan kalender">${[['month','Bulan'],['week','Minggu'],['agenda','Agenda']].map(([v,label])=>`<button type="button" data-action="planView" data-view="${v}" class="${S.planCalendarView===v?'active':''}" aria-pressed="${S.planCalendarView===v}">${label}</button>`).join('')}</div>`;
- const dow=['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(x=>`<div class="pl-weekday">${x}</div>`).join('');
- const cells=dates.map(iso=>{
-  const dayEvents=events.filter(e=>planIsOnDay(e,iso));const marked=iso===S.planDay;const outside=iso.slice(0,7)!==currentMonth&&!isWeek;
-  return `<button class="pl-day ${marked?'pl-selected':''} ${iso===today?'pl-today':''} ${outside?'pl-outside':''}" type="button" data-action="planDay" data-day="${iso}" aria-label="${esc(fmtDate(iso))}, ${dayEvents.length} agenda" aria-pressed="${marked}"><span class="pl-day-number">${Number(iso.slice(-2))}${iso===today?'<i>today</i>':''}</span><span class="pl-day-events">${dayEvents.slice(0,3).map(e=>`<span class="pl-day-event pl-cat-${plCode(e.category)}" title="${esc(e.title)}"><i></i><span>${esc(short(e.title,18))}</span></span>`).join('')}${dayEvents.length>3?`<small>+${dayEvents.length-3} kegiatan</small>`:''}</span></button>`;
- }).join('');
- const agendaItems=events.filter(e=>e.startDate>=localISO(monthFirst)&&e.startDate<localISO(new Date(Date.UTC(monthFirst.getUTCFullYear(),monthFirst.getUTCMonth()+1,1))));
- const agenda=`<div class="pl-agenda-feed">${agendaItems.length?agendaItems.map(e=>`<div class="pl-agenda-row"><div class="pl-agenda-date"><b>${Number(e.startDate.slice(-2))}</b><small>${esc(new Date(e.startDate+'T00:00:00Z').toLocaleDateString('id-ID',{month:'short',timeZone:'UTC'}))}</small></div><span class="pl-agenda-stripe pl-cat-${plCode(e.category)}"></span><div class="pl-agenda-info"><b>${esc(e.title)}</b><small>${esc(d.projects.find(p=>p.id===e.projectId)?.name||'Project')} • ${esc(e.category)} ${e.time?'· '+esc(e.time):''}</small></div><button class="pl-tool-btn" type="button" ${planItemAction(e)}>Detail ↗</button></div>`).join(''):plEmpty('Tidak ada jadwal pada bulan ini','Tambahkan kegiatan melalui tombol Jadwalkan kegiatan.')}</div>`;
- const board=`<section class="pl-surface pl-calendar-board">${calendarHeader}${modes}${isAgenda?agenda:`<div class="pl-calendar-scroll"><div class="pl-calendar-grid">${dow}${cells}</div></div>`}<div class="pl-legend"><span><i class="pl-dot orange"></i> Development</span><span><i class="pl-dot red"></i> Deadline</span><span><i class="pl-dot green"></i> Release</span><span><i class="pl-dot blue"></i> Testing / Deployment</span></div></section>`;
- const chosenPanel=`<aside class="pl-surface pl-calendar-aside"><div class="pl-aside-heading"><span class="pl-overline">SELECTED DAY</span><h2>${esc(selectedLabel)}</h2><p>${selected.length} agenda tercatat</p></div><button type="button" class="pl-aside-create" data-action="planNewEvent" data-day="${esc(S.planDay)}">✦ &nbsp; Tambah agenda hari ini <span>↗</span></button><div class="pl-aside-items">${selected.length?selected.slice(0,16).map(e=>`<div class="pl-aside-event"><span class="pl-aside-event-icon pl-cat-${plCode(e.category)}">◈</span><div><b>${esc(short(e.title,85))}</b><small>${esc(plCategoryLabel(e.category))} · ${esc(d.projects.find(p=>p.id===e.projectId)?.name||'Project')}${e.time?' · '+esc(e.time):''}</small>${e.description?`<p>${esc(short(e.description,140))}</p>`:''}</div><button type="button" class="pl-event-edit" ${planItemAction(e)} aria-label="Lihat ${esc(e.title)}">↗</button></div>`).join(''):plEmpty('Hari ini masih kosong','Pilih hari lain atau buat agenda baru.')}</div></aside>`;
- return planningHero('Development Calendar','Pantau jadwal development, rencana release, testing, deadlines, dan maintenance pada satu kalender terpadu.',actionButtons)+`<div class="pl-workspace"><div class="pl-toolbar"><div class="pl-toolbar-label"><span class="pl-live-dot"></span> Integrated planning calendar <small>• Sumber proyek terhubung</small></div><div class="pl-toolbar-tools">${plProjectChooser()}<button type="button" class="pl-tool-btn" data-action="refresh">↻ Refresh</button></div></div>${kpis}<div class="pl-calendar-layout">${board}${chosenPanel}</div></div>`;
-}
+// ══════════════════════════════════════════════════════════════════════════
+// REVISI: INTERACTIVE DEVELOPMENT TIMELINE (EXECUTIVE SUNSET GANTT)
+// ══════════════════════════════════════════════════════════════════════════
+async function planningTimeline() {
+  const d = await planningBundle();
+  S.currentTable = 'ProjectTimelinePhases';
+  S.currentList = null;
 
+  const phases = (d.phases || []).filter(plMatches).slice().sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
+  const today = localISO(new Date());
+  const delayed = phases.filter(x => x.endDate && x.endDate < today && x.status !== 'Completed' && Number(x.progress || 0) < 100);
+  const active = phases.filter(x => x.status === 'In Progress');
+  const milestones = (d.milestones || []).filter(plMatches).filter(x => parseISO(x.dueDate));
+  const overall = phases.length ? Math.round(phases.reduce((sum, p) => sum + Number(p.progress || 0), 0) / phases.length) : 0;
+
+  // Sizing & Dates Engine
+  const rows = phases.filter(x => parseISO(x.startDate));
+  const dates = rows.flatMap(x => [parseISO(x.startDate), parseISO(x.endDate || x.startDate)]).concat(milestones.map(m => parseISO(m.dueDate))).filter(Boolean);
+  const base = dates.length ? new Date(Math.min(...dates.map(x => x.getTime()))) : parseISO(today);
+  const last = dates.length ? new Date(Math.max(...dates.map(x => x.getTime()))) : addPlanDays(base, 155);
+  const floor = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), 1));
+  const totalMonths = Math.max(6, Math.min(36, (last.getUTCFullYear() - floor.getUTCFullYear()) * 12 + (last.getUTCMonth() - floor.getUTCMonth()) + 2));
+  const width = totalMonths * 133;
+  const end = new Date(Date.UTC(floor.getUTCFullYear(), floor.getUTCMonth() + totalMonths, 1));
+  const offsetDate = iso => Math.max(0, Math.min(width, dayDelta(floor, parseISO(iso) || floor) / Math.max(1, dayDelta(floor, end)) * width));
+  const months = Array.from({length: totalMonths}, (_, i) => new Date(Date.UTC(floor.getUTCFullYear(), floor.getUTCMonth() + i, 1)));
+  const currentX = parseISO(today) && today >= localISO(floor) && today <= localISO(end) ? offsetDate(today) : -1;
+  const ticks = months.map((date, i) => `<div class="pl-axis-month" style="left:${i * 133}px;width:133px">${esc(date.toLocaleDateString('id-ID', {month: 'short', year: 'numeric', timeZone: 'UTC'}))}</div>`).join('');
+
+  // Gantt Lanes Generator
+  const lanes = rows.map((r, i) => {
+    const begin = offsetDate(r.startDate), finish = offsetDate(r.endDate || r.startDate);
+    const barWidth = Math.max(16, finish - begin);
+    const progress = Math.max(0, Math.min(100, Number(r.progress || 0)));
+    const late = r.endDate && r.endDate < today && !['Completed', 'Cancelled'].includes(r.status) && progress < 100;
+    const pins = milestones.filter(m => m.projectId === r.projectId && m.dueDate >= r.startDate && m.dueDate <= (r.endDate || r.startDate))
+      .map(m => `<span class="pl-milestone-pin" style="left:${offsetDate(m.dueDate)}px" title="${esc(m.title)} · ${esc(m.dueDate)}">◆</span>`).join('');
+    const projectName = d.projects.find(x => x.id === r.projectId)?.name || 'Project';
+    
+    return `
+      <div class="pl-gantt-row">
+        <div class="pl-gantt-label">
+          <span class="pl-phase-num">${String(i + 1).padStart(2, '0')}</span>
+          <div class="min-w-0">
+            <b class="truncate block">${esc(short(r.title, 32))}</b>
+            <small class="truncate block">${esc(short(projectName, 26))} · ${esc(r.phase || 'Dev')}</small>
+          </div>
+        </div>
+        <div class="pl-gantt-track" style="width:${width}px;background-size:133px 100%">
+          ${currentX >= 0 ? `<i class="pl-today-line" style="left:${currentX}px"></i>` : ''}
+          <button type="button" data-action="planEditPhase" data-id="${esc(r.id)}" 
+            class="pl-phase-bar ${late ? 'pl-is-late' : ''} pl-phase-${plCode(r.phase)}" 
+            style="left:${begin}px;width:${barWidth}px" 
+            title="${esc(r.title)} • ${progress}%">
+            <span class="pl-phase-fill" style="width:${progress}%"></span>
+            <strong>${progress}%</strong>
+          </button>
+          ${pins}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const milestoneList = milestones.slice().sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 6);
+
+  return `
+  <div class="space-y-6 sm:space-y-8 max-w-full overflow-hidden">
+    
+    <!-- ═════════════════════════════════════════════════════════════
+         1. EXECUTIVE SUNSET HERO (DEVELOPMENT TIMELINE)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="relative overflow-hidden rounded-[26px] sm:rounded-[32px] ov-hero-mesh text-white p-6 sm:p-9 lg:p-10 border border-white/10 shadow-[0_24px_55px_-12px_rgba(234,88,12,0.22)]">
+      
+      <!-- Ambient Lighting Blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-orange-500/30 to-rose-600/20 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-28 -left-20 w-72 h-72 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-600/10 blur-3xl"></div>
+
+      <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 lg:gap-8">
+        
+        <div class="max-w-2xl min-w-0">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] sm:text-xs font-bold tracking-wider uppercase text-orange-200">
+            <span class="ov-pulse-dot"><span></span><span></span></span>
+            <span>INTERACTIVE ROADMAP & GANTT ENGINE</span>
+          </div>
+
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12] text-white mt-3.5 mb-2.5">
+            Interactive Development Timeline
+          </h1>
+
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
+            Visualisasikan siklus hidup software dari idea, planning, development, testing hingga release 
+            dan maintenance dalam visual Gantt roadmap terpadu.
+          </p>
+
+          <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 mt-5 sm:mt-6">
+            <button type="button" data-action="create" data-table="ProjectTimelinePhases"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white text-xs sm:text-sm font-extrabold shadow-[0_8px_20px_rgba(249,115,22,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+              <span class="text-base leading-none">+</span> New Phase
+            </button>
+            <button type="button" data-action="planNewEvent" 
+              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white text-xs sm:text-sm font-bold transition-all">
+              + Add Event
+            </button>
+          </div>
+        </div>
+
+        <!-- Telemetry Widget -->
+        <div class="w-full lg:w-auto flex-shrink-0">
+          <div class="ov-glass-card rounded-2xl p-4 sm:p-5 flex items-center justify-between lg:flex-col lg:items-start gap-4 min-w-[220px]">
+            <div>
+              <span class="text-[10px] font-extrabold uppercase tracking-widest text-orange-300 block">ROADMAP VELOCITY</span>
+              <div class="text-3xl sm:text-4xl font-black text-amber-300 mt-0.5">${overall}% <span class="text-xs font-normal text-slate-300">Rata-rata</span></div>
+            </div>
+            <div class="flex items-center gap-4 pt-0 lg:pt-3 lg:border-t lg:border-white/10 w-full justify-between text-right lg:text-left">
+              <div>
+                <span class="text-[9px] text-slate-400 block uppercase">Fase Terjadwal</span>
+                <b class="text-xs font-bold text-white">${phases.length} Fase</b>
+              </div>
+              <div class="border-l border-white/10 pl-3">
+                <span class="text-[9px] text-slate-400 block uppercase">In Progress</span>
+                <b class="text-xs font-bold text-emerald-300">${active.length} Aktif</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         2. CONTROL DECK (PROJECT FILTER & REFRESH)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="proj-control-deck p-2.5 sm:p-3.5">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        
+        <div class="flex items-center gap-2 px-2 text-xs font-bold text-slate-700">
+          <span class="ov-pulse-dot scale-75 shrink-0"><span></span><span></span></span>
+          <span>Live Development Roadmap · Data tersimpan per proyek</span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-2.5">
+          <!-- Project Filter Dropdown (Satu Panah Presisi) -->
+          <div class="relative flex-1 sm:flex-none min-w-[200px]">
+            <div class="deck-btn-pill relative flex items-center px-3.5 py-2.5 cursor-pointer">
+              <span class="text-orange-500 text-xs font-bold shrink-0 mr-2 pointer-events-none">◈</span>
+              <select id="planProject" 
+                class="w-full appearance-none bg-transparent border-0 p-0 pr-6 text-xs font-bold text-slate-700 focus:ring-0 focus:outline-none cursor-pointer">
+                <option value="">Semua Proyek (All)</option>
+                ${S.projects.map(p => `
+                  <option value="${esc(p.id)}" ${S.planProject === p.id ? 'selected' : ''}>${esc(short(p.name, 26))}</option>
+                `).join('')}
+              </select>
+              <svg class="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Refresh Button -->
+          <button type="button" data-action="refresh" 
+            class="deck-btn-pill inline-flex items-center gap-1.5 px-3.5 py-2.5 text-xs cursor-pointer hover:border-orange-400 hover:text-orange-600">
+            <span>↻</span>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         3. 4 BENTO KPI CARDS (WARM LUXURY SURFACES)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      
+      <!-- KPI 1: Fase Terjadwal -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+            ◫
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-800 border border-orange-300 shadow-2xs">
+            Roadmap
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">${phases.length}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Fase Terjadwal</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Seluruh fase pengembangan</span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Progress Rata-rata -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+            ↗
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-900 border border-amber-300 shadow-2xs">
+            Rata-rata
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">${overall}%</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Progress Rata-rata</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Berdasarkan fase tercatat</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Sedang Berjalan -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+            ⚡
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-800 border border-emerald-300 shadow-2xs">
+            In Progress
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">${active.length}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Sedang Berjalan</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Aktivitas in development</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Melewati Target -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
+            ⚑
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg ${delayed.length > 0 ? 'bg-rose-500/15 text-rose-800 border-rose-300' : 'bg-slate-100 text-slate-600'} shadow-2xs">
+            Perlu Tindak Lanjut
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black ${delayed.length > 0 ? 'text-rose-600' : 'text-slate-900'} tracking-tight leading-none">${delayed.length}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Melewati Target</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Perlu perhatian & evaluasi</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         4. GANTT ROADMAP SURFACE (LUXURY WARM CONTAINER)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="cal-board-card p-5 sm:p-7 flex flex-col justify-between">
+      
+      <!-- Header RoadMap -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-5 mb-5 border-b border-orange-200/50">
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-orange-900/60 block mb-1">VISUAL ROADMAP / GANTT</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Development Journey</h2>
+          <p class="text-xs text-slate-500 mt-0.5 font-normal">Geser secara horizontal untuk melihat rentang waktu. Klik bar fase untuk mengedit data.</p>
+        </div>
+        <span class="px-3.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-200/80 text-orange-800 text-xs font-extrabold shadow-2xs">
+          ${totalMonths} Bulan Rentang
+        </span>
+      </div>
+
+      <!-- Gantt Scroll Container -->
+      ${rows.length ? `
+        <div class="rounded-2xl bg-white/85 border border-orange-200/60 overflow-hidden shadow-inner">
+          <div class="pl-gantt-scroll" tabindex="0" aria-label="Timeline proyek dapat digeser horizontal">
+            <div class="pl-gantt-inner" style="width:${width + 238}px">
+              
+              <!-- Axis Bulan -->
+              <div class="pl-axis">
+                <div class="pl-axis-spacer font-black text-orange-950/70">PROYEK / FASE</div>
+                <div class="pl-axis-track" style="width:${width}px">
+                  ${ticks}
+                  ${currentX >= 0 ? `<i class="pl-today-line" style="left:${currentX}px"></i>` : ''}
+                </div>
+              </div>
+
+              <!-- Baris-Baris Fase -->
+              ${lanes}
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend Footer -->
+        <div class="flex flex-wrap items-center gap-4 pt-4 mt-5 border-t border-orange-200/50 text-[10px] font-bold text-slate-500">
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-amber-500"></i> Scheduled</span>
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-emerald-500"></i> Completion</span>
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-rose-500"></i> Overdue (Terlambat)</span>
+          <span class="inline-flex items-center gap-1.5 text-sky-700 font-extrabold">◆ Milestone Keypoint</span>
+        </div>
+      ` : plEmpty('Timeline belum memiliki fase', 'Buat fase pengembangan pertama untuk memunculkan visualisasi roadmap interaktif.')}
+
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         5. BOTTOM BENTO GRID: MILESTONES & WHAT NEEDS ATTENTION
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-7 items-start">
+      
+      <!-- Key Milestones Card -->
+      <section class="cal-board-card p-5 sm:p-7 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-orange-200/50">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-orange-900/60 block mb-0.5">KEY MILESTONES</span>
+              <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">Upcoming Milestones</h3>
+            </div>
+            <button type="button" data-action="nav" data-target="workspace" class="btn small font-bold">
+              Workspace ↗
+            </button>
+          </div>
+
+          <div class="space-y-2.5">
+            ${milestoneList.length ? milestoneList.map(m => `
+              <div class="p-3 sm:p-3.5 rounded-2xl bg-white/80 border border-orange-200/60 shadow-2xs flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="px-2.5 py-1.5 rounded-xl bg-orange-100 text-orange-800 text-[10px] font-black shrink-0">
+                    ${esc(fmtDate(m.dueDate))}
+                  </div>
+                  <div class="min-w-0">
+                    <b class="text-xs font-black text-slate-900 block truncate">${esc(m.title)}</b>
+                    <small class="text-[10px] text-slate-500 block truncate mt-0.5">${esc(d.projects.find(x => x.id === m.projectId)?.name || 'Project')}</small>
+                  </div>
+                </div>
+                ${badge(m.status || 'Planned')}
+              </div>
+            `).join('') : plEmpty('Belum ada milestone', 'Tambahkan milestone proyek dari halaman Development Workspace.')}
+          </div>
+        </div>
+      </section>
+
+      <!-- What Needs Attention Card -->
+      <section class="cal-board-card p-5 sm:p-7 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-orange-200/50">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-rose-900/70 block mb-0.5">PROJECT INSIGHTS</span>
+              <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">What Needs Attention?</h3>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${delayed.length > 0 ? 'bg-rose-50 text-rose-800 border border-rose-300' : 'bg-emerald-50 text-emerald-800'} shadow-2xs">
+              ${delayed.length} Perlu Evaluasi
+            </span>
+          </div>
+
+          <div class="space-y-2.5">
+            ${delayed.length ? delayed.slice(0, 5).map(r => `
+              <button type="button" 
+                data-action="planEditPhase" 
+                data-id="${esc(r.id)}" 
+                class="w-full p-3.5 rounded-2xl bg-rose-50/80 hover:bg-rose-100/80 border border-rose-200/80 shadow-2xs text-left transition-colors flex items-center justify-between gap-3 group">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-rose-200 text-rose-800 font-black text-sm flex items-center justify-center shrink-0">
+                    !
+                  </div>
+                  <div class="min-w-0">
+                    <b class="text-xs font-black text-slate-900 block truncate group-hover:text-rose-700 transition-colors">${esc(r.title)}</b>
+                    <small class="text-[10px] text-rose-600 block truncate mt-0.5 font-bold">Terlambat sejak ${esc(fmtDate(r.endDate))}</small>
+                  </div>
+                </div>
+                <span class="text-slate-400 group-hover:text-rose-600 font-bold text-xs shrink-0">↗</span>
+              </button>
+            `).join('') : `
+              <div class="p-6 text-center text-slate-400 rounded-2xl bg-white/40 border border-orange-200/30">
+                <span class="text-2xl block mb-1">🎉</span>
+                <b class="text-xs text-slate-700 block">Semua Fase Sesuai Jadwal</b>
+                <span class="text-[10px]">Belum ada fase pengembangan yang melewati tenggat waktu.</span>
+              </div>
+            `}
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+  `;
+}
+async function planningCalendar() {
+  const d = await planningBundle();
+  S.currentTable = 'ProjectCalendarEvents';
+  S.currentList = null;
+
+  const events = planCalendarItems(d);
+  const today = localISO(new Date());
+  const anchor = parseISO(S.planAnchor) || parseISO(today);
+  const monthFirst = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1));
+  const chosen = parseISO(S.planDay) || anchor;
+
+  const isWeek = S.planCalendarView === 'week';
+  const isAgenda = S.planCalendarView === 'agenda';
+  const first = isWeek ? addPlanDays(anchor, -((anchor.getUTCDay() + 6) % 7)) : addPlanDays(monthFirst, -((monthFirst.getUTCDay() + 6) % 7));
+  const count = isWeek ? 7 : 42;
+  const dates = Array.from({ length: count }, (_, i) => localISO(addPlanDays(first, i)));
+  const currentMonth = localISO(monthFirst).slice(0, 7);
+
+  // Telemetry Counts
+  const currentMonthEvents = events.filter(e => e.startDate.slice(0, 7) === currentMonth);
+  const deadlineCount = events.filter(e => ['Deadline', 'Milestone'].includes(e.category) && e.startDate >= today).length;
+  const releaseCount = events.filter(e => e.category === 'Release').length;
+  const selectedDayEvents = events.filter(e => planIsOnDay(e, S.planDay));
+  const selectedLabel = plDay(chosen);
+
+  return `
+  <div class="space-y-6 sm:space-y-8 max-w-full overflow-hidden">
+    
+    <!-- ═════════════════════════════════════════════════════════════
+         1. EXECUTIVE SUNSET HERO (DEVELOPMENT CALENDAR)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="relative overflow-hidden rounded-[26px] sm:rounded-[32px] ov-hero-mesh text-white p-6 sm:p-9 lg:p-10 border border-white/10 shadow-[0_24px_55px_-12px_rgba(234,88,12,0.22)]">
+      
+      <!-- Ambient Lighting Blobs -->
+      <div class="pointer-events-none absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-orange-500/30 to-rose-600/20 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-28 -left-20 w-72 h-72 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-600/10 blur-3xl"></div>
+
+      <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 lg:gap-8">
+        
+        <div class="max-w-2xl min-w-0">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] sm:text-xs font-bold tracking-wider uppercase text-orange-200">
+            <span class="ov-pulse-dot"><span></span><span></span></span>
+            <span>DEVELOPMENT PLANNING & SCHEDULE</span>
+          </div>
+
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12] text-white mt-3.5 mb-2.5">
+            Development Calendar
+          </h1>
+
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
+            Pantau jadwal development, target deadline sprint, rilis versi, dan pemeliharaan teknis 
+            pada satu kalender terpadu yang terhubung dengan Google Sheets.
+          </p>
+
+          <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 mt-5 sm:mt-6">
+            <button type="button" data-action="planNewEvent" 
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white text-xs sm:text-sm font-extrabold shadow-[0_8px_20px_rgba(249,115,22,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+              <span class="text-base leading-none">+</span> Jadwalkan Kegiatan
+            </button>
+            <button type="button" data-action="create" data-table="ProjectTimelinePhases" 
+              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white text-xs sm:text-sm font-bold transition-all">
+              + Development Phase
+            </button>
+          </div>
+        </div>
+
+        <!-- Telemetry Widget -->
+        <div class="w-full lg:w-auto flex-shrink-0">
+          <div class="ov-glass-card rounded-2xl p-4 sm:p-5 flex items-center justify-between lg:flex-col lg:items-start gap-4 min-w-[220px]">
+            <div>
+              <span class="text-[10px] font-extrabold uppercase tracking-widest text-orange-300 block">PERIODE AKTIF</span>
+              <div class="text-xl sm:text-2xl font-black text-white mt-0.5">${esc(plMonth(anchor))}</div>
+            </div>
+            <div class="flex items-center gap-4 pt-0 lg:pt-3 lg:border-t lg:border-white/10 w-full justify-between text-right lg:text-left">
+              <div>
+                <span class="text-[9px] text-slate-400 block uppercase">Agenda Bulan Ini</span>
+                <b class="text-xs font-bold text-amber-300">${currentMonthEvents.length} Kegiatan</b>
+              </div>
+              <div class="border-l border-white/10 pl-3">
+                <span class="text-[9px] text-slate-400 block uppercase">Deadlines</span>
+                <b class="text-xs font-bold text-rose-300">${deadlineCount} Target</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         2. CONTROL DECK (PROJECT FILTER & REFRESH)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="proj-control-deck p-2.5 sm:p-3.5">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        
+        <div class="flex items-center gap-2 px-2 text-xs font-bold text-slate-700">
+          <span class="ov-pulse-dot scale-75 shrink-0"><span></span><span></span></span>
+          <span>Integrated Planning Calendar · Sumber data terhubung</span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-2.5">
+          <!-- Project Filter Dropdown (Satu Panah Presisi) -->
+          <div class="relative flex-1 sm:flex-none min-w-[200px]">
+            <div class="deck-btn-pill relative flex items-center px-3.5 py-2.5 cursor-pointer">
+              <span class="text-orange-500 text-xs font-bold shrink-0 mr-2 pointer-events-none">◈</span>
+              <select id="planProject" 
+                class="w-full appearance-none bg-transparent border-0 p-0 pr-6 text-xs font-bold text-slate-700 focus:ring-0 focus:outline-none cursor-pointer">
+                <option value="">Semua Proyek (All)</option>
+                ${S.projects.map(p => `
+                  <option value="${esc(p.id)}" ${S.planProject === p.id ? 'selected' : ''}>${esc(short(p.name, 26))}</option>
+                `).join('')}
+              </select>
+              <svg class="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Refresh Button -->
+          <button type="button" data-action="refresh" 
+            class="deck-btn-pill inline-flex items-center gap-1.5 px-3.5 py-2.5 text-xs cursor-pointer hover:border-orange-400 hover:text-orange-600">
+            <span>↻</span>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         3. 4 BENTO KPI CARDS (WARM LUXURY SURFACES)
+         ═════════════════════════════════════════════════════════════ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      
+      <!-- KPI 1: Agenda Bulan Ini -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+            ▦
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-800 border border-orange-300 shadow-2xs">
+            Bulan Ini
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">${currentMonthEvents.length}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Agenda Bulan Ini</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Aktivitas pada bulan terpilih</span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Upcoming Deadlines -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
+            ⚑
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg ${deadlineCount > 0 ? 'bg-rose-500/15 text-rose-800 border-rose-300' : 'bg-slate-100 text-slate-600'} shadow-2xs">
+            Target Waktu
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black ${deadlineCount > 0 ? 'text-rose-600' : 'text-slate-900'} tracking-tight leading-none">${deadlineCount}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Upcoming Deadlines</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Deadline & milestone mendatang</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Jadwal Tersimpan -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+            ◷
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-900 border border-amber-300 shadow-2xs">
+            Agenda Manual
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">${(d.events || []).filter(plMatches).length}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Jadwal Tersimpan</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Agenda manual per proyek</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Releases -->
+      <div class="ws-body-card p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl proj-squircle-icon text-white font-black text-xl flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+            🚀
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-800 border border-emerald-300 shadow-2xs">
+            Versi Rilis
+          </span>
+        </div>
+        <div>
+          <div class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">${releaseCount}</div>
+          <p class="text-xs font-bold text-slate-700 mt-2">Planned Releases</p>
+          <span class="text-[10px] text-slate-500 mt-0.5 block font-normal">Terhubung ke release registry</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         4. MAIN CALENDAR BOARD & ASIDE DETAIL PANEL
+         ═════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-7 items-start">
+      
+      <!-- KALENDER UTAMA (8 COLS) -->
+      <section class="xl:col-span-8 cal-board-card p-5 sm:p-7 flex flex-col justify-between">
+        
+        <!-- Header Tools Kalender -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-orange-200/50">
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-orange-900/60 block mb-1">YOUR DEVELOPMENT SCHEDULE</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              ${esc(plMonth(anchor))}
+            </h2>
+          </div>
+
+          <!-- Aksi Navigasi Bulan / Hari Ini -->
+          <div class="flex items-center gap-2">
+            <button type="button" data-action="planToday" 
+              class="px-3.5 py-2 rounded-xl bg-white border border-orange-200/80 hover:border-orange-400 text-xs font-extrabold text-slate-700 shadow-2xs transition-all">
+              Hari ini
+            </button>
+            <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-orange-200/80 shadow-2xs">
+              <button type="button" data-action="planStep" data-step="-1" 
+                class="w-8 h-8 rounded-lg hover:bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-base transition-colors" 
+                aria-label="Periode sebelumnya">‹</button>
+              <button type="button" data-action="planStep" data-step="1" 
+                class="w-8 h-8 rounded-lg hover:bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-base transition-colors" 
+                aria-label="Periode berikutnya">›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode Switcher (Bulan, Minggu, Agenda) -->
+        <div class="cal-view-pill inline-flex items-center gap-1 mb-5 self-start">
+          ${[['month', 'Bulan'], ['week', 'Minggu'], ['agenda', 'Agenda']].map(([v, label]) => `
+            <button type="button" 
+              data-action="planView" 
+              data-view="${v}" 
+              class="cal-view-btn ${S.planCalendarView === v ? 'active' : ''}">
+              ${label}
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Grid Kalender atau Agenda Feed -->
+        ${isAgenda ? `
+          <div class="space-y-2.5">
+            ${(() => {
+              const agendaItems = events.filter(e => e.startDate >= localISO(monthFirst) && e.startDate < localISO(new Date(Date.UTC(monthFirst.getUTCFullYear(), monthFirst.getUTCMonth() + 1, 1))));
+              if (!agendaItems.length) return plEmpty('Tidak ada jadwal pada bulan ini', 'Tambahkan kegiatan baru melalui tombol Jadwalkan kegiatan.');
+              return agendaItems.map(e => `
+                <div class="p-3.5 rounded-2xl bg-white/80 border border-orange-200/60 shadow-2xs flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3.5 min-w-0">
+                    <div class="w-11 h-11 rounded-xl bg-orange-100/90 text-orange-700 font-black text-sm flex flex-col items-center justify-center shrink-0 leading-tight">
+                      <span>${Number(e.startDate.slice(-2))}</span>
+                      <small class="text-[9px] font-bold uppercase">${esc(new Date(e.startDate + 'T00:00:00Z').toLocaleDateString('id-ID', { month: 'short', timeZone: 'UTC' }))}</small>
+                    </div>
+                    <div class="min-w-0">
+                      <b class="text-xs font-black text-slate-900 block truncate">${esc(e.title)}</b>
+                      <span class="text-[10px] text-slate-500 block truncate mt-0.5">${esc(d.projects.find(p => p.id === e.projectId)?.name || 'Project')} · ${esc(e.category)}</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn small shrink-0 font-bold" ${planItemAction(e)}>Detail ↗</button>
+                </div>
+              `).join('');
+            })()}
+          </div>
+        ` : `
+          <div class="overflow-x-auto scrollbar-thin pb-2">
+            <div class="min-w-[560px]">
+              <!-- Nama Hari -->
+              <div class="grid grid-cols-7 gap-2 mb-2">
+                ${['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(x => `
+                  <div class="text-[10px] font-black uppercase tracking-wider text-orange-950/60 text-center py-1">${x}</div>
+                `).join('')}
+              </div>
+
+              <!-- Cells Tanggal -->
+              <div class="grid grid-cols-7 gap-2">
+                ${dates.map(iso => {
+                  const dayEvents = events.filter(e => planIsOnDay(e, iso));
+                  const marked = iso === S.planDay;
+                  const isCurrentDay = iso === today;
+                  const outside = iso.slice(0, 7) !== currentMonth && !isWeek;
+
+                  return `
+                  <button type="button" 
+                    data-action="planDay" 
+                    data-day="${iso}" 
+                    class="cal-day-cell min-h-[96px] sm:min-h-[105px] p-2 text-left flex flex-col justify-between ${marked ? 'pl-selected' : ''} ${isCurrentDay ? 'pl-today' : ''} ${outside ? 'opacity-40' : ''}">
+                    
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-black ${isCurrentDay ? 'text-orange-600' : 'text-slate-800'}">
+                        ${Number(iso.slice(-2))}
+                      </span>
+                      ${isCurrentDay ? `
+                        <span class="text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full bg-orange-500 text-white">TODAY</span>
+                      ` : ''}
+                    </div>
+
+                    <!-- Event Mini Pills di Dalam Hari -->
+                    <div class="space-y-1 w-full min-w-0 mt-1">
+                      ${dayEvents.slice(0, 2).map(e => `
+                        <div class="text-[8px] font-bold px-1.5 py-0.5 rounded-md truncate block ${
+                          ['Deadline', 'Milestone'].includes(e.category) ? 'bg-rose-100 text-rose-800' :
+                          e.category === 'Release' ? 'bg-emerald-100 text-emerald-800' :
+                          ['Testing', 'Deployment'].includes(e.category) ? 'bg-sky-100 text-sky-800' :
+                          'bg-amber-100 text-amber-900'
+                        }">
+                          ${esc(short(e.title, 14))}
+                        </div>
+                      `).join('')}
+                      ${dayEvents.length > 2 ? `
+                        <span class="text-[8px] font-black text-orange-600 block pl-0.5">+${dayEvents.length - 2} lagi</span>
+                      ` : ''}
+                    </div>
+                  </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `}
+
+        <!-- Legend Footer -->
+        <div class="flex flex-wrap items-center gap-4 pt-4 mt-5 border-t border-orange-200/50 text-[10px] font-bold text-slate-500">
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-amber-500"></i> Development</span>
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-rose-500"></i> Deadline / Milestone</span>
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-emerald-500"></i> Release</span>
+          <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-sky-500"></i> Testing / Deployment</span>
+        </div>
+
+      </section>
+
+      <!-- PANEL HARI TERPILIH (4 COLS) -->
+      <aside class="xl:col-span-4 cal-board-card p-5 sm:p-6 flex flex-col justify-between">
+        <div>
+          <!-- Header Hari Terpilih -->
+          <div class="pb-4 mb-4 border-b border-orange-200/50">
+            <span class="text-[10px] font-black uppercase tracking-wider text-orange-900/60 block mb-0.5">SELECTED DAY</span>
+            <h3 class="text-xl font-black text-slate-900 tracking-tight leading-tight">${esc(selectedLabel)}</h3>
+            <span class="text-xs text-slate-500 font-normal mt-0.5 block">${selectedDayEvents.length} agenda terjadwal</span>
+          </div>
+
+          <!-- Tombol Tambah Agenda Hari Ini -->
+          <button type="button" 
+            data-action="planNewEvent" 
+            data-day="${esc(S.planDay)}" 
+            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-[0_8px_18px_-4px_rgba(249,115,22,0.45)] hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-between mb-5">
+            <span>+ Tambah Agenda Hari Ini</span>
+            <span>↗</span>
+          </button>
+
+          <!-- List Event Hari Terpilih -->
+          <div class="space-y-2.5 max-h-[460px] overflow-y-auto scrollbar-thin pr-1">
+            ${selectedDayEvents.length ? selectedDayEvents.map(e => `
+              <div class="p-3.5 rounded-2xl bg-white/80 border border-orange-200/60 shadow-2xs hover:border-orange-400 transition-colors flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                    ['Deadline', 'Milestone'].includes(e.category) ? 'bg-rose-100 text-rose-800' :
+                    e.category === 'Release' ? 'bg-emerald-100 text-emerald-800' :
+                    'bg-amber-100 text-amber-900'
+                  }">
+                    ${esc(e.category)}
+                  </span>
+                  <b class="text-xs font-black text-slate-900 block truncate mt-1.5" title="${esc(e.title)}">
+                    ${esc(e.title)}
+                  </b>
+                  <p class="text-[10px] text-slate-500 truncate mt-0.5">
+                    ${esc(d.projects.find(p => p.id === e.projectId)?.name || 'Project')} ${e.time ? '· ' + esc(e.time) : ''}
+                  </p>
+                </div>
+                <button type="button" class="btn small shrink-0 font-bold" ${planItemAction(e)} aria-label="Lihat ${esc(e.title)}">
+                  ↗
+                </button>
+              </div>
+            `).join('') : `
+              <div class="p-6 text-center text-slate-400 rounded-2xl bg-white/40 border border-orange-200/30">
+                <span class="text-2xl block mb-1">☕</span>
+                <b class="text-xs text-slate-600 block">Hari Ini Masih Kosong</b>
+                <span class="text-[10px]">Belum ada agenda atau deadline pada tanggal ini.</span>
+              </div>
+            `}
+          </div>
+        </div>
+
+        <div class="pt-4 mt-5 border-t border-orange-200/50 text-[10px] text-slate-400">
+          ✦ Klik pada kotak tanggal kalender untuk meninjau atau menambah agenda.
+        </div>
+      </aside>
+
+    </div>
+
+  </div>
+  `;
+}
 function formField(f,value){const id='f_'+f.key,v=str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
  if(f.type==='textarea')input=`<textarea id="${id}" name="${esc(f.key)}" rows="${f.key==='content'||f.key==='code'?12:4}" ${required}>${esc(v)}</textarea>`;
  else if(f.type==='select')input=`<select id="${id}" name="${esc(f.key)}" ${required}><option value="">Select ${esc(f.label)}</option>${(f.options||[]).map(option=>`<option value="${esc(option)}" ${v===option?'selected':''}>${esc(option)}</option>`).join('')}</select>`;
