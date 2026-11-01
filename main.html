@@ -3237,45 +3237,50 @@ async function settings() {
  * One authenticated planningBundle request; shared by the timeline and calendar.
  * All dates are treated as date-only values, so timezone does not shift deadlines.
  */
-// ══════════════════════════════════════════════════════════════════════════
-// PERBAIKAN: PARSER TANGGAL FLEKSIBEL (SUPPORT FORMAT GOOGLE SHEETS & ISO)
-// ══════════════════════════════════════════════════════════════════════════
-function parseISO(value) {
-  if (!value) return null;
-  if (value instanceof Date && !isNaN(value)) return value;
-  
-  const s = String(value).trim();
-  
-  // 1. Ekstrak pola YYYY-MM-DD bahkan jika ada embel-embel jam/zona (T00:00:00.000Z)
-  const match = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (match) {
-    const y = match[1];
-    const m = match[2].padStart(2, '0');
-    const d = match[3].padStart(2, '0');
-    const dt = new Date(`${y}-${m}-${d}T00:00:00Z`);
-    if (!isNaN(dt.getTime())) return dt;
+function localISO(date){return date.toISOString().slice(0,10)}
+/* Date compatibility patch: Sheets getValues() may return a Date serialized as ISO datetime. */
+function planningDateOnly(value){
+ if(value===null||value===undefined||value==='')return '';
+ if(value instanceof Date){return isNaN(value.getTime())?'':value.toISOString().slice(0,10);}
+ const raw=String(value).trim();
+ let ymd='';
+ const iso=raw.match(/^(\d{4}-\d{2}-\d{2})(?:[Tt\s].*)?$/);
+ if(iso)ymd=iso[1];
+ else {
+  // DD/MM/YYYY and DD-MM-YYYY are accepted for legacy Indonesian Sheets values.
+  const regional=raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if(regional)ymd=`${regional[3]}-${regional[2].padStart(2,'0')}-${regional[1].padStart(2,'0')}`;
+  else if(/^\d{5}(?:\.\d+)?$/.test(raw)){
+   // Spreadsheet serial date (date-only): 1899-12-30 is the serial origin.
+   const serial=Number(raw);if(serial>=20000&&serial<100000){const d=new Date(Date.UTC(1899,11,30)+Math.floor(serial)*86400000);ymd=d.toISOString().slice(0,10);}
   }
-  
-  // 2. Fallback parser standar
-  const fallback = new Date(s);
-  return (!isNaN(fallback.getTime())) ? fallback : null;
+ }
+ if(!ymd)return '';
+ const parsed=new Date(ymd+'T00:00:00Z');
+ return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===ymd?ymd:'';
+}
+function parseISO(value){const iso=planningDateOnly(value);return iso?new Date(iso+'T00:00:00Z'):null;}
+function normalizePlanningBundleDates(bundle){
+ if(!bundle||typeof bundle!=='object')return bundle;
+ const mapping={
+  phases:['startDate','endDate'],events:['startDate','endDate'],
+  milestones:['dueDate'],releases:['date'],deployments:['date'],
+  projects:['startDate','targetDate','releaseDate']
+ };
+ for(const [collection,fields] of Object.entries(mapping)){
+  if(!Array.isArray(bundle[collection]))continue;
+  for(const row of bundle[collection]){
+   if(!row||typeof row!=='object')continue;
+   for(const field of fields){
+    if(!row[field])continue;
+    const normalized=planningDateOnly(row[field]);
+    if(normalized)row[field]=normalized;
+   }
+  }
+ }
+ return bundle;
 }
 
-function localISO(date) {
-  if (!date) return '';
-  if (date instanceof Date && !isNaN(date.getTime())) {
-    return date.toISOString().slice(0, 10);
-  }
-  
-  const s = String(date).trim();
-  const match = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (match) {
-    return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
-  }
-  
-  const parsed = new Date(s);
-  return (!isNaN(parsed.getTime())) ? parsed.toISOString().slice(0, 10) : s.slice(0, 10);
-}
 function addPlanDays(d,days){return new Date(d.getTime()+days*86400000)}
 function dayDelta(start,end){return Math.round((end-start)/86400000)}
 function plMonth(d){return d.toLocaleDateString('id-ID',{timeZone:'UTC',month:'long',year:'numeric'})}
@@ -3283,7 +3288,7 @@ function plDay(d){return d.toLocaleDateString('id-ID',{timeZone:'UTC',day:'numer
 function plDayShort(d){return d.toLocaleDateString('id-ID',{timeZone:'UTC',weekday:'short',day:'numeric'})}
 function planningRepaint(){S.viewCache.delete(routeKey());renderRoute({keepContent:true});}
 async function planningBundle(){
- const start=performance.now();const data=await cached('planning:bundle',()=>ITAPI.call('planningBundle',{}),45000);
+ const start=performance.now();const data=normalizePlanningBundleDates(await cached('planning:bundle',()=>ITAPI.call('planningBundle',{}),45000));
  S.planningData=data;S.projects=data.projects||[];
  console.info(`[ITCOMMAND PLANNING] Shared timeline+calendar bundle ready • ${Math.round(performance.now()-start)}ms`);
  return data;
@@ -3332,6 +3337,8 @@ async function planningTimeline() {
 
   // Sizing & Dates Engine
   const rows = phases.filter(x => parseISO(x.startDate));
+  const undatedPhases = phases.filter(x => !parseISO(x.startDate));
+  if(undatedPhases.length)console.warn(`[ITCOMMAND TIMELINE] ${undatedPhases.length} phase tidak ditampilkan di Gantt karena startDate kosong/tidak valid. Data tetap tersedia untuk diedit.`,undatedPhases.map(x=>({id:x.id,startDate:x.startDate})));
   const dates = rows.flatMap(x => [parseISO(x.startDate), parseISO(x.endDate || x.startDate)]).concat(milestones.map(m => parseISO(m.dueDate))).filter(Boolean);
   const base = dates.length ? new Date(Math.min(...dates.map(x => x.getTime()))) : parseISO(today);
   const last = dates.length ? new Date(Math.max(...dates.map(x => x.getTime()))) : addPlanDays(base, 155);
@@ -3604,7 +3611,18 @@ async function planningTimeline() {
           <span class="inline-flex items-center gap-1.5"><i class="w-2.5 h-2.5 rounded-full bg-rose-500"></i> Overdue (Terlambat)</span>
           <span class="inline-flex items-center gap-1.5 text-sky-700 font-extrabold">◆ Milestone Keypoint</span>
         </div>
-      ` : plEmpty('Timeline belum memiliki fase', 'Buat fase pengembangan pertama untuk memunculkan visualisasi roadmap interaktif.')}
+      ` : plEmpty(
+          phases.length ? 'Fase tersimpan, tetapi tanggal mulai tidak terbaca' : 'Timeline belum memiliki fase',
+          phases.length ? 'Data fase masih tercatat. Periksa tanggal mulai pada form edit di bawah.' : 'Buat fase pengembangan pertama untuk memunculkan visualisasi roadmap interaktif.'
+      )}
+      ${undatedPhases.length ? `
+      <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50/90 p-4" role="status">
+        <strong class="block text-sm font-extrabold text-amber-900">${undatedPhases.length} fase memerlukan perbaikan tanggal</strong>
+        <p class="text-xs text-amber-800 mt-1 mb-3">Data tidak dihapus; tanggal mulai belum dapat dibaca. Pilih Edit untuk memperbaikinya.</p>
+        <div class="flex flex-wrap gap-2">${undatedPhases.map(r=>`
+          <button type="button" class="btn small" data-action="planEditPhase" data-id="${esc(r.id)}">Edit ${esc(short(r.title||'Phase',36))}</button>
+        `).join('')}</div>
+      </div>` : ''}
 
     </section>
 
