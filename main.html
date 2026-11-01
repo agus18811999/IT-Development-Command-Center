@@ -3276,6 +3276,11 @@ function normalizePlanningBundleDates(bundle){
     const normalized=planningDateOnly(row[field]);
     if(normalized)row[field]=normalized;
    }
+   if(collection==='events'&&row.time){
+    const time=itInputTime(row.time);
+    if(time)row.time=time;
+    else console.warn('[ITCOMMAND TIME] Waktu event tidak dapat dinormalisasi', {eventId:row.id, time:String(row.time)});
+   }
   }
  }
  return bundle;
@@ -4136,13 +4141,47 @@ function itInputDate(value){
  }
  return '';
 }
-function formField(f,value){const id='f_'+f.key,v=f.type==='date'?itInputDate(value):str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
- const unreadable=f.type==='date'&&str(value).trim()&&!v;
+/* Time-only columns can arrive from Google Sheets as ISO Date objects, time fractions,
+   or HH:mm:ss. Normalize BEFORE binding to <input type=time> (accepts HH:mm). */
+function itInputTime(value){
+ if(value==null||value==='')return '';
+ if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<1){
+  const n=Math.round(value*1440)%1440;
+  return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+ }
+ const raw=String(value).trim();
+ if(!raw)return '';
+ if(/^0(?:\.\d+)?$/.test(raw))return itInputTime(Number(raw));
+ const clock=raw.match(/^(\d{1,2})[:.](\d{2})(?::(\d{2})(?:\.\d+)?)?$/);
+ if(clock){
+  const h=Number(clock[1]),m=Number(clock[2]),sec=Number(clock[3]||0);
+  return h<24&&m<60&&sec<60?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'):'';
+ }
+ const ampm=raw.match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)\b/i);
+ if(ampm){
+  const h=Number(ampm[1]),m=Number(ampm[2]);
+  if(h>=1&&h<=12&&m<60)return String((h%12)+(ampm[3].toUpperCase()==='PM'?12:0)).padStart(2,'0')+':'+String(m).padStart(2,'0');
+ }
+ // A Google Sheets native time may be serialized as 1899-12-30T...Z.
+ // Treat full ISO timestamps as instants and display them in the spreadsheet's WIB zone.
+ if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/i.test(raw)){
+  const date=new Date(raw);
+  if(Number.isFinite(date.getTime())){
+   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+   const hh=parts.find(x=>x.type==='hour')?.value;
+   const mm=parts.find(x=>x.type==='minute')?.value;
+   return hh&&mm?hh+':'+mm:'';
+  }
+ }
+ return '';
+}
+function formField(f,value){const id='f_'+f.key,v=f.type==='date'?itInputDate(value):f.type==='time'?itInputTime(value):str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
+ const unreadable=(f.type==='date'||f.type==='time')&&str(value).trim()&&!v;
  if(unreadable)console.warn('[ITCOMMAND DATE] Tanggal sumber tidak dapat dibaca, simpan diblokir sampai diperbaiki.',{field:f.key,source:str(value)});
  if(f.type==='textarea')input=`<textarea id="${id}" name="${esc(f.key)}" rows="${f.key==='content'||f.key==='code'?12:4}" ${required}>${esc(v)}</textarea>`;
  else if(f.type==='select')input=`<select id="${id}" name="${esc(f.key)}" ${required}><option value="">Select ${esc(f.label)}</option>${(f.options||[]).map(option=>`<option value="${esc(option)}" ${v===option?'selected':''}>${esc(option)}</option>`).join('')}</select>`;
  else input=`<input type="${f.type}" id="${id}" name="${esc(f.key)}" value="${esc(v)}" ${required} ${f.min!=null?'min="'+f.min+'"':''} ${f.max!=null?'max="'+f.max+'"':''} placeholder="${esc(f.label)}">`;
- return `<div class="form-field ${full}"><label for="${id}">${esc(f.label)}${f.required?' *':''}</label>${input}${unreadable?'<small class="form-hint" style="color:#bd4b34!important">Format tanggal lama tidak dikenali. Jangan simpan sebelum diperbaiki.</small>':''}${f.key==='secretRef'?'<small class="form-hint">Referensi nama saja, jangan isi nilai token/key.</small>':''}</div>`;
+ return `<div class="form-field ${full}"><label for="${id}">${esc(f.label)}${f.required?' *':''}</label>${input}${unreadable?`<small class="form-hint" style="color:#bd4b34!important">Format ${f.type==='time'?'waktu':'tanggal'} lama tidak dikenali. Jangan simpan sebelum diperbaiki.</small>`:''}${f.type==='time'&&str(value).trim()?`<label style="display:flex;align-items:center;gap:8px;margin-top:9px;font-size:10px;color:#9a6670;cursor:pointer"><input type="checkbox" id="${id}_clear" style="width:auto;min-height:0;box-shadow:none" /> Hapus waktu tersimpan secara sengaja</label>`:''}${f.key==='secretRef'?'<small class="form-hint">Referensi nama saja, jangan isi nilai token/key.</small>':''}</div>`;
 }
 function openDrawer(title,body,footer){$('drawerTitle').textContent=title;$('drawerBody').innerHTML=body;$('drawerFoot').innerHTML=footer||'';$('overlay').classList.add('open');$('drawer').classList.add('open');document.body.classList.add('overflow-hidden');}
 function closeDrawer(){S.formReqId++;document.activeElement?.blur();$('overlay').classList.remove('open');$('drawer').classList.remove('open');$('drawerBody').innerHTML='';$('drawerFoot').innerHTML='';document.body.classList.remove('overflow-hidden');}
@@ -4310,6 +4349,22 @@ async function saveForm(){
     error(new Error('Format '+f.label+' tidak valid. Pilih tanggal melalui kalender.'));
     return;
    }
+  }
+  if(f.type==='time'){
+   const original=S.formOriginalRecord?.[f.key];
+   const clear=$('f_'+f.key+'_clear')?.checked===true;
+   if(clear){obj[f.key]='';obj._clearTime='true';continue;}
+   if(original&&!itInputTime(original)&&!obj[f.key]){
+    error(new Error('Waktu lama tidak dikenali. Periksa data di Google Sheets sebelum menyimpan.'));
+    return;
+   }
+   if(obj[f.key]&&!itInputTime(obj[f.key])){
+    error(new Error('Format waktu tidak valid. Pilih jam dan menit dengan benar.'));
+    return;
+   }
+   // An empty browser control must NEVER silently erase an existing time.
+   if(original&&!obj[f.key])obj[f.key]=itInputTime(original);
+   else if(obj[f.key])obj[f.key]=itInputTime(obj[f.key]);
   }
  }
  S.saveBusy=true;
