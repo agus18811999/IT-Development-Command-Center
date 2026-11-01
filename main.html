@@ -44,10 +44,64 @@ html{scroll-behavior:smooth}body{background:#f7f9fc;font-size:13px;color:#24344d
 
 
 .overview-intro{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(220px,.7fr);min-height:283px;position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(108deg,#f76b19 0%,#ff9745 57%,#4f9ee5 116%);border-radius:23px;padding:34px 37px;margin-bottom:18px;color:#fff;box-shadow:0 20px 48px #f87b2733}.overview-intro:before{content:"";position:absolute;width:480px;height:480px;border:1px solid #ffffff5e;border-radius:50%;right:-195px;top:-190px;box-shadow:0 0 0 72px #ffffff12,0 0 0 155px #ffffff0a;z-index:-1}.overview-overline{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.18em;color:#fff9}.overview-intro h2{font-size:clamp(27px,3vw,45px);line-height:1.12;letter-spacing:-.07em;font-weight:800;margin:18px 0 12px}.overview-intro h2 em{font-style:normal;color:#fff1db}.overview-intro p{font-size:11px;line-height:1.8;max-width:500px;color:#fffc; margin:0}.overview-intro .btn{background:#ffffffec;border:1px solid #fffb;color:#d96924;box-shadow:0 8px 24px #d5641c21}.overview-intro .btn:hover{background:#fff;color:#d96924}.overview-intro-aside{position:relative;align-self:center;justify-self:end;width:min(230px,100%);padding:21px;border:1px solid #ffffff70;border-radius:20px;background:#ffffff26;backdrop-filter:blur(12px);box-shadow:0 14px 32px #e06c1820}.overview-intro-aside span,.overview-intro-aside small{display:block;font-size:9px;letter-spacing:.11em;font-weight:700;color:#fffe}.overview-intro-aside strong{display:block;font-size:56px;line-height:1.2;letter-spacing:-.075em;margin:10px 0}.overview-intro-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;border-top:1px solid #ffffff4f;margin-top:16px;padding-top:15px}.overview-intro-pair b{font-size:19px;display:block;margin-bottom:5px}.overview-intro-pair small{letter-spacing:0}.metrics-rail{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:11px;background:#fff;border:1px solid #e9edf3;border-radius:18px;margin-bottom:19px;box-shadow:var(--shadow)}.metric-chip{min-width:0;border-radius:12px;background:linear-gradient(135deg,#fbfcff,#fff8f2);padding:11px;display:flex;align-items:center;gap:10px}.metric-chip>span{font-size:19px;color:#ee7b35}.metric-chip b,.metric-chip small{display:block;overflow-wrap:anywhere}.metric-chip b{font-size:16px;color:#23344a;line-height:1.1}.metric-chip small{font-size:9px;color:#8e9aab;margin-top:4px;line-height:1.4}@media(max-width:1300px){.metrics-rail{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:750px){.overview-intro{grid-template-columns:1fr;padding:27px 23px;gap:22px}.overview-intro-aside{width:100%;justify-self:stretch;display:flex;justify-content:space-between;align-items:center;gap:14px}.overview-intro-aside strong{font-size:38px;margin:5px 0}.overview-intro-pair{margin:0;padding:0;border:0;flex:1}.overview-intro h2{font-size:32px}.metrics-rail{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:390px){.overview-intro-aside{padding:15px}.overview-intro-pair{gap:8px}.metrics-rail{grid-template-columns:1fr 1fr}}
+
+/* ── ITCOMMAND / PREMIUM V4 — Finora-inspired presentation, native drawer layout ── */
+:root{--orange:#ff6b1a;--ember:#e95411;--apricot:#ff9d5e;--navy:#111c32;--indigo:#354b79;--sky:#72b3ef;--border:#ece8e6;--ink:#1d263a;--muted:#8990a0;--shadow:0 14px 47px #55301a0d}
+body{background:#fbf9f8;color:#2a3142;letter-spacing:-.005em}
+.app{grid-template-columns:266px minmax(0,1fr)}.sidebar{background:#fff;box-shadow:5px 0 35px #3320150b;border-right:1px solid #f0e9e5;isolation:isolate}
+.sidebar:before{background:linear-gradient(90deg,#f35d18,#ff9651,#f9b68a);height:4px}
+.brand{padding:25px 22px 23px;border-bottom:1px solid #f1e7e4;gap:12px}.brand-mark{background:linear-gradient(145deg,#ff641d,#ff9f60)!important;color:#fff!important;border:1px solid #ffb088!important;box-shadow:0 9px 20px #ff722844;border-radius:15px!important;width:48px!important;height:48px!important;display:grid;place-items:center;font-size:23px}
+.brand b{font-size:21px;letter-spacing:-.08em;color:#25232f}.brand small{letter-spacing:.15em;color:#aaa0a2;font-size:8px;font-weight:800;margin-top:5px}
+.nav-scroll{padding:18px 13px 20px;scrollbar-color:#f4b493 transparent;overscroll-behavior:contain}.nav-heading{font-size:9px;font-weight:800;letter-spacing:.16em;color:#aa9aa2;margin:22px 11px 10px}.nav-heading:first-child{margin-top:8px}
+.nav-btn{min-height:42px;margin:3px 0;padding:7px 12px;border:1px solid transparent;border-radius:11px;color:#6f7282;font-size:11px;font-weight:700;gap:10px;transition:background .14s,border-color .14s,transform .14s,box-shadow .14s}
+.nav-btn:hover{background:#fff4f0;color:#f46626;border-color:#ffe4d7;transform:translateX(2px)}.nav-btn.active{background:linear-gradient(108deg,#ff7134,#fb4164)!important;color:#fff!important;border-color:#fa8d77!important;box-shadow:0 9px 21px #fc6c5950;transform:translateX(0)}
+.nav-icon{border-radius:10px!important;background:#f8f6f6;color:#9a93a0;transition:background .14s}.nav-btn.active .nav-icon{background:#ffffff35!important;color:#fff!important;border-color:#ffffff33!important}.nav-btn.active .nav-num{color:#fff9}.nav-btn .nav-num{color:#c5bdc4}
+/* Keep existing sidefoot HTML and behavior; preserve its position and content. */
+.sidefoot{border-top:1px solid #f1e9e4;background:#fff;padding:13px 16px}
+.top{background:#fffefdf0;border-bottom-color:#f1ece9;min-height:72px}.top .round,.top .search-global{border-color:#f0e9e8}.crumb b{color:#f25e2d}
+.content{padding-top:25px;background:radial-gradient(ellipse at 90% 0%,#fff0e84d,transparent 36%),#fbf9f8}
+/* Dark editorial hero is consistent on all 20 modules. */
+.titlebar.module-hero{padding:35px clamp(23px,3vw,40px);margin-bottom:24px;min-height:226px;border-radius:25px;border:1px solid #8e4e47;background:radial-gradient(ellipse at 110% -25%,#f79755b5,transparent 53%),linear-gradient(106deg,#1b182a 0%,#4b2630 49%,#8e352b 78%,#d86830 119%);box-shadow:0 18px 37px #683d3c23;align-items:center;gap:20px;overflow:hidden}
+.module-hero:before{width:420px!important;height:420px!important;top:-200px!important;right:-100px!important;border:1px solid #ffffff32!important;border-radius:50%;box-shadow:0 0 0 72px #ffffff0b,0 0 0 140px #ffc49608!important;background:transparent!important}
+.module-hero:after{content:"";position:absolute;pointer-events:none;z-index:-1;left:auto;top:auto;right:4%;bottom:-175px;width:330px;height:330px;border-radius:50%;background:transparent;border:1px solid #ffba8a32}
+.module-hero>.hero-copy{position:relative;z-index:1;min-width:0;flex:1 1 430px}.module-hero .eyebrow{background:#ffffff17;color:#ffcfb3;border:1px solid #ffffff40;letter-spacing:.13em;padding:8px 12px;font-size:9px}
+.module-hero .page-title{color:#fff;font-size:clamp(29px,3.25vw,47px);letter-spacing:-.067em;line-height:1.13;margin:17px 0 9px;text-wrap:balance;max-width:740px}.module-hero .sub{color:#f9dcd5!important;font-size:12px!important;line-height:1.85!important;max-width:670px}
+.module-hero .toolbar{margin-top:20px!important;display:flex;justify-content:flex-start;align-items:center;gap:10px;flex-wrap:wrap}
+.module-hero .toolbar .btn{background:#ffffffef;color:#b74e36;border-color:#ffffffa8;box-shadow:0 8px 22px #240b111a;font-weight:800}.module-hero .toolbar .btn:hover{background:#fff;color:#bd4b32}.module-hero .toolbar .btn.primary{background:linear-gradient(110deg,#ff753c,#ff4b64);border-color:#ffbe96;color:#fff;box-shadow:0 7px 25px #fd604450}
+.module-hero .hero-aside{position:relative;z-index:1;width:clamp(190px,23%,250px);flex:none;background:#ffffff13;border:1px solid #ffffff3a;border-radius:20px;padding:22px;backdrop-filter:blur(13px);box-shadow:0 13px 25px #160a1421}
+.hero-aside .ha-kicker{font-size:9px;letter-spacing:.17em;font-weight:800;color:#ffe0cb}.hero-aside .ha-icon{display:grid;place-items:center;margin:18px 0 14px;width:48px;height:48px;border:1px solid #ffffff3b;background:#ffffff25;border-radius:14px;font-size:24px;color:#fff}.hero-aside strong{display:block;font-size:15px;line-height:1.45;font-weight:800;color:#fff}.hero-aside p{font-size:10px;color:#f8dcd2;line-height:1.65;margin-top:8px}
+.overview-intro{background:linear-gradient(110deg,#fff0e9,#fffaf8 59%,#eef6ff)!important;border:1px solid #ffe2d4!important;color:#243044!important;min-height:230px!important;box-shadow:0 13px 29px #ba61530c!important}
+.overview-intro:before{border-color:#fc995a40!important;box-shadow:0 0 0 72px #ff914010,0 0 0 155px #ffbd9f0c!important}
+.overview-intro h2{color:#252c3c!important;font-size:clamp(28px,3vw,39px)!important}.overview-intro h2 em{color:#ec6d36!important}.overview-intro p{color:#748092!important}.overview-overline{color:#ef743f!important}.overview-intro-aside{background:#fff9!important;border:1px solid #fbd4bc!important;box-shadow:0 12px 26px #c77b3610}.overview-intro-aside strong,.overview-intro-pair b{color:#26334c}.overview-intro-aside span,.overview-intro-aside small{color:#ac7b6c!important}.overview-intro-pair{border-color:#f5d1c1!important}.overview-intro .btn{background:#fff!important;border:1px solid #f8d9cb!important;color:#d76335!important}
+.panel,.project-card,.settings-card{box-shadow:0 9px 30px #65372c0a;border:1px solid #f2e9e4}.panel{border-radius:21px}.stat{background:linear-gradient(150deg,#fff,#fff9f6);border-radius:17px}.stat:hover{box-shadow:0 16px 29px #cb88631a}.panel-head b{color:#242738;font-size:13px}.panel-pad{padding:24px}.data-table th{background:#fff8f5;color:#9c8a8d}.data-table tr:hover td{background:#fff8f5}.tag{border-radius:999px;font-size:10px}.project-card:before{background:linear-gradient(90deg,#fb6a26,#f94e64,#ffb474)}.project-card{background:#fff;min-height:260px}.project-logo{background:linear-gradient(145deg,#fff1eb,#fff7f4);color:#fa7038}.progress i{background:linear-gradient(90deg,#fa6339,#fb4a67)}
+.filters{background:#fff;border:1px solid #f1e8e5;border-radius:17px;padding:13px;box-shadow:0 7px 23px #8a493208}
+/* FINORA-esque drawer: layout stays at the right, only skin and hierarchy change. */
+.overlay{background:rgba(23,16,28,.51);backdrop-filter:blur(6px)}
+.drawer{width:min(730px,100%);border-left:1px solid #ffceba;background:#fff;box-shadow:-22px 0 75px #261a2e52}
+.drawer-head{padding:0!important;border-bottom:0!important;overflow:hidden;background:linear-gradient(110deg,#f95539,#f64d5a 53%,#f18a74)!important;min-height:168px;align-items:start}
+.drawer-head:before{width:330px!important;height:330px!important;right:-110px!important;top:-190px!important;box-shadow:0 0 0 54px #fff2,0 0 0 112px #fff1!important;border:1px solid #fffee0a6!important}
+.drawer-head .drawer-head-inner{position:relative;z-index:1;padding:22px 33px 25px;width:100%}
+.drawer-head .drawer-kicker{display:inline-flex;align-items:center;gap:8px;border:1px solid #ffffff61;border-radius:999px;padding:7px 12px;background:#ffffff22;color:#fff;font-size:9px;letter-spacing:.12em;font-weight:800}
+.drawer-head .drawer-brand{display:flex;align-items:center;gap:13px;margin-top:19px}.drawer-head .drawer-symbol{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:14px;background:#ffffff29;color:#fff;border:1px solid #ffffff78;box-shadow:0 9px 22px #8b1b3120;font-size:25px}
+.drawer-head #drawerTitle{color:#fff!important;max-width:none;font-size:clamp(20px,3vw,28px)!important;line-height:1.2;letter-spacing:-.06em}.drawer-head .drawer-subtitle{display:block;font-size:10px;color:#ffe8de;line-height:1.75;margin-top:5px}.drawer-head #closeDrawer{position:absolute;z-index:2;top:21px;right:22px;min-height:36px;width:36px;border-radius:11px;background:#ffffff1f;color:#fff;border:1px solid #ffffff6e;box-shadow:none}
+.drawer-body{padding:25px 32px 28px;background:#fff;scrollbar-width:thin;scrollbar-color:#eec6bd #fff}.drawer-body>.drawer-intro{color:#7b7888;font-size:11px;line-height:1.8;margin:0 0 20px;border-bottom:1px solid #f4e9e9;padding-bottom:18px}
+.drawer-foot{padding:17px 30px!important;background:#fffaf9;border-top:1px solid #f4e5e4;box-shadow:0 -10px 35px #512b2e0a;justify-content:flex-end}.drawer-foot .btn.primary{background:linear-gradient(115deg,#f94c57,#ff7563);border-color:transparent;color:#fff;border-radius:12px;box-shadow:0 8px 20px #fa5d6340;min-width:150px}
+.form-grid{gap:17px 16px}.form-field label{font-size:11px;font-weight:800;color:#514450;margin-bottom:9px}.form-field input,.form-field select,.form-field textarea{border:1px solid #eadde3;border-radius:13px!important;min-height:49px;background:#fff;box-shadow:none;color:#312c3e;padding:13px 15px;font-size:11px}.form-field textarea{min-height:95px;resize:vertical}.form-field input::placeholder,.form-field textarea::placeholder{color:#bdb2bb}.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:#fb6a68;box-shadow:0 0 0 4px #ffedf0;background:#fff}
+.form-section{display:flex;gap:11px;margin:10px 0 4px;letter-spacing:0;text-transform:none;color:#292433;font-size:13px;font-weight:800}.form-section:after{background:#f0e3e6}.form-step{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:10px;background:#ffebef;color:#f84f65;border:1px solid #ffd8df;font-size:12px;font-weight:800;letter-spacing:0}.form-section-copy{display:flex;flex-direction:column;gap:2px}.form-section-copy small{font-size:9px;color:#b1a5b0;font-weight:500;letter-spacing:0;line-height:1.5}.form-advanced{background:#fffafb;border:1px solid #f0dfe4;border-radius:15px}.form-advanced summary{padding:17px 19px;color:#625362;font-size:11px;font-weight:800}.form-advanced .form-grid{padding:15px 17px 21px}
+.toast{border-color:#f2e6e7;border-radius:17px}.toast:before{background:linear-gradient(90deg,#fa5067,#ff9a67)}.toast .toast-badge{color:#f54e68;background:#fff0f3}.confirm-card{border-radius:25px;border:1px solid #f2e0e2;box-shadow:0 35px 95px #1b172750}.confirm-symbol{background:linear-gradient(135deg,#fff0f3,#ffe6dd)!important;color:#fa5770!important}
+.sk-hero{background:linear-gradient(110deg,#f5e4e0,#fff8f7 55%,#fff0e5);border-color:#f5dfd9}
+.sk{background:#f2e9e8}.sk:before{background:linear-gradient(90deg,transparent,#fff9,transparent)}
+/* No clipping / usable drawer at 320px and small landscape screens */
+@media(max-width:1260px){.app{grid-template-columns:245px minmax(0,1fr)}.module-hero .hero-aside{display:none}}
+@media(max-width:950px){.app{grid-template-columns:1fr}.sidebar{width:min(320px,88vw)}.module-hero .hero-aside{display:block}}
+@media(max-width:650px){.content{padding:14px 12px 45px}.module-hero{min-height:0!important;display:block;padding:25px 20px!important;border-radius:19px!important}.module-hero .page-title{font-size:clamp(25px,7vw,33px)}.module-hero .hero-aside{display:none}.module-hero .toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.module-hero .toolbar .btn{min-width:0;font-size:10px}.overview-intro{min-height:0!important;padding:22px 19px!important}.overview-intro-aside{display:block}.drawer{top:0;height:100dvh;bottom:0;width:100%;border-radius:0;transform:translateX(103%)}.drawer.open{transform:translateX(0)}.drawer-head{min-height:157px}.drawer-head .drawer-head-inner{padding:17px 19px 23px}.drawer-head #closeDrawer{top:15px;right:15px}.drawer-head .drawer-brand{margin-top:17px}.drawer-head #drawerTitle{font-size:22px!important}.drawer-body{padding:20px 17px}.drawer-foot{padding:13px 17px!important}.form-grid{grid-template-columns:1fr}.form-field.full,.form-section,.form-advanced{grid-column:auto}.form-advanced .form-grid{grid-template-columns:1fr}.form-section{font-size:12px}.panel-pad{padding:17px}}
+@media(max-width:360px){.module-hero{padding:21px 16px!important}.module-hero .toolbar{grid-template-columns:1fr 1fr}.drawer-head .drawer-kicker{font-size:8px;max-width:82%}.drawer-head .drawer-symbol{width:40px;height:40px}.drawer-foot .btn{min-width:0!important;padding:10px 12px}}
+@media(prefers-reduced-motion:reduce){.nav-btn,.module-hero,.form-field input{transition:none}}
+
 </style></head>
 <body><div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="brand-mark">⌘</div><div><b>itcommand.</b><small>DEVELOPMENT COMMAND CENTER</small></div></div><nav class="nav-scroll" id="nav" aria-label="Main navigation"></nav><div class="sidefoot"><div class="avatar" id="sideAvatar">D</div><div class="user-short"><b id="sideName">Developer</b><small id="sideEmail">Loading account…</small></div><button type="button" data-action="logout" title="Logout">↪</button></div></aside><div class="mobile-backdrop" id="mobileBackdrop"></div>
 <div class="main"><header class="top"><button class="mobile-btn" id="menuButton" aria-label="Open navigation">☰</button><div class="crumb"><small>Workspace</small><small>›</small><b id="crumb">Overview</b></div><div class="top-right"><label class="search-global">⌕ <input type="search" id="globalSearch" placeholder="Search projects..." aria-label="Search projects"></label><button class="round" title="Latest activity" data-action="nav" data-target="activity">♧</button><div class="avatar" id="topAvatar">D</div></div></header><main class="content" id="app" aria-live="polite"><div class="skeleton-view" aria-label="Loading workspace"><div class="sk-hero"><div class="sk sk-mini" style="width:130px"></div><div class="sk sk-line" style="width:45%;height:32px"></div><div class="sk sk-mini" style="width:59%"></div></div><div class="sk-row"><div class="sk-stat"><div class="sk" style="height:40px;width:40px"></div><div class="sk sk-line" style="width:55%"></div></div><div class="sk-stat"><div class="sk" style="height:40px;width:40px"></div><div class="sk sk-line" style="width:55%"></div></div></div></div></main></div></div>
-<div class="overlay" id="overlay"></div><aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><b id="drawerTitle">Edit data</b><button class="btn icon-only" id="closeDrawer" aria-label="Close">✕</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-foot" id="drawerFoot"></div></aside><div id="toasts" class="toast-wrap" aria-live="polite"></div>
+<div class="overlay" id="overlay"></div><aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div class="drawer-head-inner"><span class="drawer-kicker">✦ ITCOMMAND · SECURE DATA EDITOR</span><div class="drawer-brand"><span class="drawer-symbol">⌘</span><div><b id="drawerTitle">Edit data</b><small class="drawer-subtitle">Setiap perubahan disimpan ke workspace pribadi melalui Google Sheets.</small></div></div></div><button class="btn icon-only" id="closeDrawer" aria-label="Close">✕</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-foot" id="drawerFoot"></div></aside><div id="toasts" class="toast-wrap" aria-live="polite"></div>
 <script src="config.js"></script><script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -77,6 +131,18 @@ const definitions={
 const navGroups=[['WORKSPACE',[['overview','Overview','◫'],['projects','All IT Projects','▦'],['workspace','Development Workspace','▤']]],['DEVELOPMENT',[['technologies','Technology Stack','◈'],['deployments','Deployments & Hosting','🚀'],['repositories','Source Code Registry','⌘'],['bugs','Bug & Issue Tracker','⚑'],['features','Feature Tracker','✦'],['releases','Versions & Releases','◷']]],['TECHNICAL ASSETS',[['apis','API & Integrations','⇄'],['databases','Database & Backend','▤'],['domains','Domains & URLs','◎'],['documents','Documentation','▧'],['snippets','Code Snippets','</>'],['resources','Resource Library','☷']]],['INSIGHTS & SYSTEM',[['activity','Development Activity','◴'],['analytics','Analytics & Insights','↗'],['costs','Costs & Services','＄'],['backup','Export / Backup / Import','⇩'],['settings','Profile & Settings','⚙']]]];
 const titles=Object.fromEntries(navGroups.flatMap(g=>g[1].map(item=>[item[0],item[1]])));
 const S={route:'overview',page:1,query:'',sort:'',sortDir:1,filterProject:'',selectedId:'',detailTab:'overview',view:'grid',projects:[],cache:new Map(),viewCache:new Map(),user:null,settings:{},charts:[],requestId:0,formReqId:0};
+const IT_TIMING={bootStart:performance.now(),navigation:[],requests:[],cacheHits:0};
+window.ITCommandMetrics={getSummary(){return {sincePageLoadMs:Math.round(performance.now()),cacheHits:IT_TIMING.cacheHits,lastNavigation:IT_TIMING.navigation.slice(-10),lastRequests:IT_TIMING.requests.slice(-12)};},print(){console.table(this.getSummary().lastNavigation);console.table(this.getSummary().lastRequests);}};
+console.info('%c[ITCOMMAND PERF] Monitoring enabled — use ITCommandMetrics.print() or getSummary()','color:#ef632a;font-weight:800');
+const IT_callOriginal=ITAPI.call.bind(ITAPI);
+ITAPI.call=async function(action,payload={},table=''){
+ const t=performance.now();try{const data=await IT_callOriginal(action,payload,table);const ms=Math.round(performance.now()-t);
+  IT_TIMING.requests.push({action,table:table||'—',ms,status:'OK'});if(IT_TIMING.requests.length>60)IT_TIMING.requests.shift();
+  console.info(`[ITCOMMAND API] ${action}${table?' / '+table:''} • ${ms}ms • SUCCESS`);return data;
+ }catch(e){const ms=Math.round(performance.now()-t);IT_TIMING.requests.push({action,table:table||'—',ms,status:e.code||'ERROR'});
+  console.warn(`[ITCOMMAND API] ${action}${table?' / '+table:''} • ${ms}ms • FAILED`,e.code||e.message);throw e;}
+};
+
 function toast(message,type='success'){
  const wrap=$('toasts'),el=document.createElement('div');el.className='toast'+(type==='error'?' error':'');el.setAttribute('role',type==='error'?'alert':'status');
  const badge=document.createElement('div');badge.className='toast-badge';badge.textContent=type==='error'?'!':'✓';
@@ -116,7 +182,7 @@ function skeleton(route){
  const cards=`<div class="sk-row" style="flex-wrap:wrap">${Array.from({length:3},()=>`<div class="sk-project" style="min-width:min(220px,100%)">${block('45px',45)}${block('80%',17)}${block('93%',11)}${block('68%',11)}</div>`).join('')}</div>`;
  return `<div class="skeleton-view" role="status" aria-label="Memuat ${esc(titles[route]||route)}">${hero}${route==='overview'?stats+boxes:route==='projects'?cards:route==='analytics'?stats+boxes:route==='settings'||route==='backup'?boxes:table}<span class="sr-only">Memuat data modul...</span></div>`;
 }
-const head=(title,description,buttons='')=>`<div class="titlebar"><div><span class="eyebrow">✦ ITCOMMAND / DEVELOPER STUDIO</span><h1 class="page-title">${esc(title)}</h1><div class="sub">${esc(description)}</div></div><div class="toolbar">${buttons}</div></div>`;
+const head=(title,description,buttons='')=>`<section class="titlebar module-hero" aria-label="${esc(title)}"><div class="hero-copy"><span class="eyebrow">✦ ITCOMMAND / PRIVATE DEVELOPER WORKSPACE</span><h1 class="page-title">${esc(title)}</h1><p class="sub">${esc(description)}</p>${buttons?`<div class="toolbar">${buttons}</div>`:''}</div><div class="hero-aside" aria-hidden="true"><span class="ha-kicker">DEVELOPMENT STUDIO</span><span class="ha-icon">${routeIcon(S.route)}</span><strong>${esc(titles[S.route]||title)}</strong><p>Project data · Firebase protected · Google Sheets connected</p></div></section>`;
 const btn=(name,action,attrs='')=>`<button type="button" class="btn ${action==='create'?'primary':''}" data-action="${esc(action)}" ${attrs}>${esc(name)}</button>`;
 const empty=(title='Belum ada data',desc='Buat data pertama untuk mulai mengelola workspace.')=>`<div class="empty"><div class="illustration">✧</div><b>${esc(title)}</b><p>${esc(desc)}</p>${btn('+ Add New','create')}</div>`;
 function badge(v){const x=str(v);return `<span class="tag ${/^(active|completed|released|live|done|paid|resolved|closed|true)$/i.test(x)?'green':/^(critical|failed|expired|reopened)$/i.test(x)?'red':/^(low|private|pending|testing|planning)$/i.test(x)?'grey':''}">${esc(x||'—')}</span>`;}
@@ -129,20 +195,31 @@ function nav(route,options={}){if(!titles[route])return;closeMobile();unchart();
  if(options.selectedId)S.selectedId=options.selectedId;if(options.tab)S.detailTab=options.tab;
  $('globalSearch').value=S.route==='projects'?S.query:'';drawNav();history.replaceState(null,'','#'+route);renderRoute();}
 function invalidate(){S.cache.clear();S.viewCache.clear();}
-async function cached(key,loader,ttl=25000){const hit=S.cache.get(key);if(hit&&Date.now()-hit.t<ttl)return hit.value;const value=await loader();S.cache.set(key,{value,t:Date.now()});return value;}
+async function cached(key,loader,ttl=35000){const hit=S.cache.get(key);if(hit?.promise)return hit.promise;if(hit&&Date.now()-hit.t<ttl){IT_TIMING.cacheHits++;return hit.value;}const promise=Promise.resolve().then(loader),entry={promise};S.cache.set(key,entry);try{const value=await promise;if(S.cache.get(key)===entry)S.cache.set(key,{value,t:Date.now()});return value;}catch(e){if(S.cache.get(key)===entry)S.cache.delete(key);throw e;}}
 async function list(table,p={}){return cached('list:'+table+JSON.stringify(p),()=>ITAPI.call('list',p,table));}
 async function loadProjects(){const data=await cached('projects:all',()=>ITAPI.call('list',{page:1,pageSize:100,archived:'all'},'Projects'));S.projects=data.items;return S.projects;}
+async function moduleData(table,args){
+ const projectHit=S.cache.get('projects:all');
+ if(projectHit&&projectHit.value&&Date.now()-projectHit.t<35000){await loadProjects();return list(table,args);}
+ try{const d=await ITAPI.call('moduleSnapshot',{table,...args});
+  S.projects=d.projects.items;S.cache.set('projects:all',{value:d.projects,t:Date.now()});
+  S.cache.set('list:'+table+JSON.stringify(args),{value:d.records,t:Date.now()});return d.records;
+ }catch(e){if(e.code!=='UNKNOWN_ACTION')throw e;
+  await loadProjects();return list(table,args);}
+}
+
 function projectName(id){return S.projects.find(p=>p.id===id)?.name||'Unknown project';}
 function projectSelect(id='filterProject',value='',allLabel='All projects'){return `<select class="control" id="${id}"><option value="">${esc(allLabel)}</option>${S.projects.filter(p=>!p.archivedAt).map(p=>`<option value="${esc(p.id)}" ${p.id===value?'selected':''}>${esc(short(p.name,30))}</option>`).join('')}</select>`;}
 function userInit(user){S.user=user;const text=(user.name||user.email||'Developer');$('sideName').textContent=text;$('sideEmail').textContent=user.email||'';
  ['sideAvatar','topAvatar'].forEach(id=>{const node=$(id);node.replaceChildren();const u=urlSafe(user.photoURL);if(u){const img=document.createElement('img');img.src=u;img.alt='Avatar';img.referrerPolicy='no-referrer';node.append(img);}else node.textContent=text.charAt(0).toUpperCase();});}
 function setContent(html){$('app').innerHTML=html;}
 async function renderRoute(){
+ const navStarted=performance.now();const routeName=S.route;
  const seq=++S.requestId,key=routeKey();
  const prev=S.viewCache.get(key);
  // Instant route restoration for a recently visited tab without another backend call.
  if(prev && Date.now()-prev.at<15000){
-   S.currentTable=prev.table;S.currentList=prev.list;S.rows=prev.rows;setContent(prev.html);postRender();return;
+   S.currentTable=prev.table;S.currentList=prev.list;S.rows=prev.rows;setContent(prev.html);postRender();const ms=Math.round(performance.now()-navStarted);IT_TIMING.navigation.push({route:routeName,ms,source:'memory'});console.info(`[ITCOMMAND NAV] ${routeName} • ${ms}ms • MEMORY CACHE`);return;
  }
  // Clear the previous module synchronously. Never display module A beneath active tab B.
  S.currentTable='';S.currentList=null;S.rows=[];setContent(skeleton(S.route));
@@ -153,7 +230,7 @@ async function renderRoute(){
   if(seq!==S.requestId)return;
   setContent(h);S.viewCache.set(key,{at:Date.now(),html:h,table:S.currentTable,list:S.currentList,rows:S.rows});
   if(S.viewCache.size>28)S.viewCache.delete(S.viewCache.keys().next().value);
-  postRender();
+  postRender();const ms=Math.round(performance.now()-navStarted);IT_TIMING.navigation.push({route:routeName,ms,source:'api'});if(IT_TIMING.navigation.length>60)IT_TIMING.navigation.shift();console.info(`[ITCOMMAND NAV] ${routeName} • ${ms}ms • API RENDER`);
  }catch(e){if(seq!==S.requestId)return;
   setContent(head('Gagal memuat modul','Data belum berhasil diambil dari Google Apps Script. Data lain tetap aman.')+`<div class="panel panel-pad"><h3 style="font-size:15px;margin-bottom:10px">Koneksi perlu diperiksa</h3><p class="sub">${esc(e.message)}</p><div style="margin-top:18px">${btn('↻ Coba lagi','refresh')}</div></div>`);error(e);
  }
@@ -186,8 +263,8 @@ function projectCard(p){const percent=Math.max(0,Math.min(100,Number(p.progress)
  ${link?`<a class="btn small" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Live ↗</a>`:''}
  <button class="btn small danger" data-action="delete" data-table="Projects" data-id="${esc(p.id)}">Delete</button></div></article>`;
 }
-async function projects(){await loadProjects();const payload={page:S.page,pageSize:APP_CONFIG.DEFAULT_PAGE_SIZE,query:S.query,archived:S.archivedFilter||'no'};
- const d=await list('Projects',payload);S.currentList=d;S.currentTable='Projects';S.rows=d.items;
+async function projects(){const payload={page:S.page,pageSize:APP_CONFIG.DEFAULT_PAGE_SIZE,query:S.query,archived:S.archivedFilter||'no'};
+ const d=await moduleData('Projects',payload);S.currentList=d;S.currentTable='Projects';S.rows=d.items;
  return head('All IT Projects','Software registry untuk semua website, aplikasi, automation, API, dan eksperimen.',btn('+ New Project','create'))+
  `<div class="filters"><input class="control" type="search" id="moduleSearch" value="${esc(S.query)}" placeholder="Search by name, type, description…"><select class="control" id="archiveFilter"><option value="no" ${(S.archivedFilter||'no')==='no'?'selected':''}>Active / Unarchived</option><option value="yes" ${S.archivedFilter==='yes'?'selected':''}>Archived</option><option value="all" ${S.archivedFilter==='all'?'selected':''}>All projects</option></select>
  <button type="button" class="btn small" data-action="toggleView">${S.view==='grid'?'☷ Table view':'▦ Grid view'}</button>${btn('Export CSV','exportCSV')}</div>
@@ -210,8 +287,8 @@ function renderTable(rows,columns,table){let out=`<div class="panel table-scroll
 function headerName(key){return key.replace(/([A-Z])/g,' $1').replace(/^\w/,c=>c.toUpperCase());}
 function pager(d){const totalPages=Math.max(1,Math.ceil(d.total/d.pageSize));if(totalPages===1)return `<p class="sub" style="margin-top:13px">${d.total} record(s)</p>`;
  return `<div class="pager"><span>${d.total} records · Page ${d.page} / ${totalPages}</span><div class="toolbar"><button class="btn small" data-action="pagePrev" ${d.page<=1?'disabled':''}>← Previous</button><button class="btn small" data-action="pageNext" ${d.page>=totalPages?'disabled':''}>Next →</button></div></div>`;}
-async function generic(route){const def=definitions[route];await loadProjects();const args={page:S.page,pageSize:APP_CONFIG.DEFAULT_PAGE_SIZE,query:S.query,projectId:S.filterProject};
- const d=await list(def.table,args);S.currentList=d;S.currentTable=def.table;S.rows=d.items;
+async function generic(route){const def=definitions[route];const args={page:S.page,pageSize:APP_CONFIG.DEFAULT_PAGE_SIZE,query:S.query,projectId:S.filterProject};
+ const d=await moduleData(def.table,args);S.currentList=d;S.currentTable=def.table;S.rows=d.items;
  let extras='';if(route==='costs')extras=await costSummary();
  if(route==='domains')extras=`<div class="soft-note">Indikator kadaluarsa dihitung berdasarkan tanggal yang kamu simpan, bukan verifikasi domain atau SSL secara live.</div>`+extras;
  if(route==='apis')extras=`<div class="soft-note">Simpan nama secret atau referensinya saja. Jangan memasukkan API key, password, refresh token, atau private key di form.</div>`+extras;
@@ -287,9 +364,9 @@ async function openForm(table,id=''){
   if(table!=='Projects'&&!active.length)throw new Error('Buat proyek dahulu agar record dapat dikaitkan.');
   const pField=table==='Projects'?'':`<div class="form-field full"><label for="recordProject">Related project *</label><select id="recordProject" name="projectId" required>${S.projects.filter(p=>!p.archivedAt||p.id===selected).map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`;
   const basic=table==='Projects'?9:Math.min(6,def.fields.length);
-  const groups=`<div class="form-section">${table==='Projects'?'Informasi utama proyek':'Informasi utama'}</div>${pField}${def.fields.slice(0,basic).map(f=>formField(f,data[f.key]??'')).join('')}`;
-  const extra=def.fields.slice(basic),detail=extra.length?`<details class="form-advanced" ${id?'open':''}><summary>Detail lanjutan & konfigurasi (${extra.length})</summary><div class="form-grid">${extra.map(f=>formField(f,data[f.key]??'')).join('')}</div></details>`:'';
-  openDrawer((id?'Edit ':'Add ')+def.title,`<p class="sub" style="margin:0 0 18px">${id?'Perbarui informasi agar seluruh aset teknis tetap sinkron.':'Tambahkan data ke workspace pribadi kamu.'}</p><form id="recordForm" class="form-grid">${groups}${detail}<input type="hidden" name="id" value="${esc(id)}"></form>`,
+  const groups=`<div class="form-section"><span class="form-step">01</span><span class="form-section-copy">${table==='Projects'?'Informasi utama proyek':'Informasi utama'}<small>Isi informasi yang diperlukan sebelum menyimpan data.</small></span></div>${pField}${def.fields.slice(0,basic).map(f=>formField(f,data[f.key]??'')).join('')}`;
+  const extra=def.fields.slice(basic),detail=extra.length?`<details class="form-advanced" ${id?'open':''}><summary>✦ 02 / Detail lanjutan & konfigurasi (${extra.length})</summary><div class="form-grid">${extra.map(f=>formField(f,data[f.key]??'')).join('')}</div></details>`:'';
+  openDrawer((id?'Edit ':'Add ')+def.title,`<p class="drawer-intro">${id?'Perbarui informasi proyek agar seluruh aset teknis tetap sinkron.':'Data yang kamu simpan akan tertaut ke workspace pribadi dan dapat diubah kapan saja.'}</p><form id="recordForm" class="form-grid">${groups}${detail}<input type="hidden" name="id" value="${esc(id)}"></form>`,
   `<button class="btn" data-action="closeDrawer">Batal</button>${table==='ProjectReleases'?'<button class="btn" data-action="generateChangelog">Generate Changelog</button>':''}<button class="btn primary" id="submitRecord" data-action="submitRecord">${id?'Simpan perubahan':'Simpan data'}</button>`);
   $('drawerBody').scrollTop=0;
  }catch(e){if(req===S.formReqId){closeDrawer();error(e);}}
@@ -301,7 +378,7 @@ async function generateChangelog(){try{const form=$('recordForm'),projectId=new 
  const text=`## ${version} — Changelog\n\n### New Features\n${features.length?features.map(x=>'- '+x.title).join('\n'):'- None recorded'}\n\n### Bug Fixes\n${bugs.length?bugs.map(x=>'- '+x.title).join('\n'):'- None recorded'}`;
  form.elements.namedItem('notes').value=text;toast('Changelog generated from released features and resolved bugs (review before saving).');
  }catch(e){error(e);}}
-async function saveForm(){const form=$('recordForm');if(!form.reportValidity())return;const obj=Object.fromEntries(new FormData(form).entries());
+async function saveForm(){const form=$('recordForm');if(!form||S.saveBusy)return;if(!form.reportValidity())return;S.saveBusy=true;const obj=Object.fromEntries(new FormData(form).entries());
  // Strong client-side safeguard: reject non-http(s) URLs; server also treats URLs as inert data.
  for(const f of (S.formTable==='Projects'?projectFields:Object.values(definitions).find(d=>d.table===S.formTable).fields)){
   if(f.type==='url'&&obj[f.key]&&!urlSafe(obj[f.key])){error(new Error('URL '+f.label+' harus dimulai http:// atau https://'));return;}
@@ -309,7 +386,7 @@ async function saveForm(){const form=$('recordForm');if(!form.reportValidity())r
  const submit=$('submitRecord');submit.disabled=true;submit.textContent='Saving…';
  try{const result=await ITAPI.call('save',obj,S.formTable);invalidate();closeDrawer();toast(result.name||result.title?`Tersimpan: ${result.name||result.title}`:'Data berhasil disimpan.');
   if(S.formTable==='Projects')S.projects=[];await renderRoute();
- }catch(e){error(e);}finally{if(document.body.contains(submit)){submit.disabled=false;submit.textContent='Save';}}
+ }catch(e){error(e);}finally{S.saveBusy=false;if(document.body.contains(submit)){submit.disabled=false;submit.textContent='Save';}}
 }
 async function openPreview(table,id){try{const row=await ITAPI.call('get',{id},table);const def=Object.values(definitions).find(d=>d.table===table);
  if(!def)throw new Error('Table invalid');
@@ -418,8 +495,8 @@ document.addEventListener('submit',async e=>{
   let initial;
   try{initial=await ITAPI.call('workspaceInit');}catch(e){if(e.code!=='UNKNOWN_ACTION')throw e;
     const [user,settings]=await Promise.all([ITAPI.call('me'),ITAPI.call('getSettings')]);initial={user,settings};}
-  userInit(initial.user);S.settings=initial.settings||{};S.view=S.settings.defaultView||'grid';
-  const hash=location.hash.slice(1),route=titles[hash]?hash:'overview';S.route=route;drawNav();await renderRoute();
+  userInit(initial.user);S.settings=initial.settings||{};S.view=S.settings.defaultView||'grid';console.info(`[ITCOMMAND PERF] Workspace auth+settings ready • ${Math.round(performance.now()-IT_TIMING.bootStart)}ms`);
+  const hash=location.hash.slice(1),route=titles[hash]?hash:'overview';S.route=route;drawNav();await renderRoute();console.info(`[ITCOMMAND PERF] Initial workspace interactive • ${Math.round(performance.now()-IT_TIMING.bootStart)}ms`);
  }catch(e){console.error('Workspace init',e);ITAuth.clear();location.replace('index.html');}
 })();
 })();
