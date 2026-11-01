@@ -56,11 +56,11 @@ window.APP_CONFIG = Object.freeze({
     if(!current)throw new Error('Silakan login kembali.');
     return Date.now()>=current.expiresAt?refresh():current.idToken;
   }
-  async function postProxy(body,requiresSession=true){
+  async function postProxy(body,requiresSession=true,tokenOverride=null){
     const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),cfg.REQUEST_TIMEOUT);
     try{
       const res=await fetch(cfg.API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({...body,token:await getToken(),session:requiresSession?current?.serverSession:undefined}),signal:controller.signal});
+        body:JSON.stringify({...body,token:tokenOverride||await getToken(),session:requiresSession?current?.serverSession:undefined}),signal:controller.signal});
       let data;try{data=await res.json();}catch(e){throw new Error('Respons API bukan JSON. Periksa deployment Apps Script dan URL proxy.');}
       if(!res.ok||!data.success){const msg=data?.error?.message||data?.message||'Request gagal';const e=new Error(msg);e.code=data?.error?.code||'API_ERROR';throw e;}
       return data.data;
@@ -85,7 +85,12 @@ window.APP_CONFIG = Object.freeze({
       const result=await firebase('signUp',{email,password,returnSecureToken:true});
       try{
         const updated=await firebase('update',{idToken:result.idToken,displayName:name,returnSecureToken:true});
-        await firebase('sendOobCode',{requestType:'VERIFY_EMAIL',idToken:updated.idToken||result.idToken});
+        try{
+          // Branded Firebase action link sent by Apps Script MailApp (Finora-style).
+          await postProxy({action:'sendVerificationEmail'},false,updated.idToken||result.idToken);
+        }catch(err){
+          throw new Error('Akun Firebase sudah dibuat, tetapi email verifikasi belum terkirim: '+err.message+'. Buka Sign In lalu pilih Kirim Ulang Verifikasi.');
+        }
       }finally{clear();}
       return true;
     },
@@ -100,7 +105,7 @@ window.APP_CONFIG = Object.freeze({
     },
     async sendVerify(email,password){
       const data=await firebase('signInWithPassword',{email,password,returnSecureToken:true});
-      await firebase('sendOobCode',{requestType:'VERIFY_EMAIL',idToken:data.idToken});
+      await postProxy({action:'sendVerificationEmail'},false,data.idToken);
       return true;
     },
     resetEmail(email){return firebase('sendOobCode',{requestType:'PASSWORD_RESET',email});},
