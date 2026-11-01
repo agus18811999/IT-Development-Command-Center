@@ -4111,11 +4111,38 @@ async function planningCalendar() {
   </div>
   `;
 }
-function formField(f,value){const id='f_'+f.key,v=str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
+// DATE INPUT FIX: normalize Sheets Date/ISO datetime before assigning a native HTML date input.
+// All date-only values shown in Indonesian workspaces must remain local calendar dates.
+function itInputDate(value){
+ if(value==null||value==='')return '';
+ const text=String(value).trim();
+ const valid=ymd=>{const d=new Date(ymd+'T00:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===ymd?ymd:'';};
+ if(/^\d{4}-\d{2}-\d{2}$/.test(text))return valid(text);
+ const regional=text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+ if(regional)return valid(`${regional[3]}-${regional[2].padStart(2,'0')}-${regional[1].padStart(2,'0')}`);
+ // Native date cells in Google Sheets are serialized to UTC ISO timestamps by Apps Script.
+ // For a midnight date in an Asia/Jakarta spreadsheet this is often 17:00Z the day before.
+ if(/^\d{4}-\d{2}-\d{2}[Tt\s]/.test(text)){
+  const date=new Date(text);
+  if(Number.isFinite(date.getTime())){
+   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+   const part=key=>parts.find(x=>x.type===key)?.value||'';
+   return valid(`${part('year')}-${part('month')}-${part('day')}`);
+  }
+ }
+ if(/^\d{5}(?:\.\d+)?$/.test(text)){
+  const serial=Number(text);
+  if(serial>=20000&&serial<100000)return valid(new Date(Date.UTC(1899,11,30)+Math.floor(serial)*86400000).toISOString().slice(0,10));
+ }
+ return '';
+}
+function formField(f,value){const id='f_'+f.key,v=f.type==='date'?itInputDate(value):str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
+ const unreadable=f.type==='date'&&str(value).trim()&&!v;
+ if(unreadable)console.warn('[ITCOMMAND DATE] Tanggal sumber tidak dapat dibaca, simpan diblokir sampai diperbaiki.',{field:f.key,source:str(value)});
  if(f.type==='textarea')input=`<textarea id="${id}" name="${esc(f.key)}" rows="${f.key==='content'||f.key==='code'?12:4}" ${required}>${esc(v)}</textarea>`;
  else if(f.type==='select')input=`<select id="${id}" name="${esc(f.key)}" ${required}><option value="">Select ${esc(f.label)}</option>${(f.options||[]).map(option=>`<option value="${esc(option)}" ${v===option?'selected':''}>${esc(option)}</option>`).join('')}</select>`;
  else input=`<input type="${f.type}" id="${id}" name="${esc(f.key)}" value="${esc(v)}" ${required} ${f.min!=null?'min="'+f.min+'"':''} ${f.max!=null?'max="'+f.max+'"':''} placeholder="${esc(f.label)}">`;
- return `<div class="form-field ${full}"><label for="${id}">${esc(f.label)}${f.required?' *':''}</label>${input}${f.key==='secretRef'?'<small class="form-hint">Referensi nama saja, jangan isi nilai token/key.</small>':''}</div>`;
+ return `<div class="form-field ${full}"><label for="${id}">${esc(f.label)}${f.required?' *':''}</label>${input}${unreadable?'<small class="form-hint" style="color:#bd4b34!important">Format tanggal lama tidak dikenali. Jangan simpan sebelum diperbaiki.</small>':''}${f.key==='secretRef'?'<small class="form-hint">Referensi nama saja, jangan isi nilai token/key.</small>':''}</div>`;
 }
 function openDrawer(title,body,footer){$('drawerTitle').textContent=title;$('drawerBody').innerHTML=body;$('drawerFoot').innerHTML=footer||'';$('overlay').classList.add('open');$('drawer').classList.add('open');document.body.classList.add('overflow-hidden');}
 function closeDrawer(){S.formReqId++;document.activeElement?.blur();$('overlay').classList.remove('open');$('drawer').classList.remove('open');$('drawerBody').innerHTML='';$('drawerFoot').innerHTML='';document.body.classList.remove('overflow-hidden');}
@@ -4135,6 +4162,8 @@ function formCachedRow(table,id){
 function buildRecordForm(table,id,def,data){
  const selected=table!=='Projects'?(data.projectId||S.selectedId||S.filterProject||''):'';
  S.editId=id;S.formTable=table;
+ // Preserve original values for edit validation; never silently overwrite an unreadable date.
+ S.formOriginalRecord=id?{...data}:null;
  const active=S.projects.filter(p=>!p.archivedAt);
  if(table!=='Projects'&&!active.length)throw new Error('Buat proyek dahulu agar record dapat dikaitkan.');
  const pField=table==='Projects'?'':`<div class="form-field full"><label for="recordProject">Related project *</label><select id="recordProject" name="projectId" required>${S.projects.filter(p=>!p.archivedAt||p.id===selected).map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`;
@@ -4270,6 +4299,18 @@ async function saveForm(){
  if(!def){error(new Error('Modul tidak ditemukan'));return;}
  for(const f of def.fields){
   if(f.type==='url'&&obj[f.key]&&!urlSafe(obj[f.key])){error(new Error('URL '+f.label+' harus dimulai http:// atau https://'));return;}
+  if(f.type==='date'){
+   const original=S.formOriginalRecord?.[f.key];
+   // An empty input caused by an unreadable backend value must not erase stored dates.
+   if(original&&(!itInputDate(original))&&!obj[f.key]){
+    error(new Error('Tanggal "'+f.label+'" dari database tidak dikenali. Penyimpanan dibatalkan untuk melindungi tanggal lama.'));
+    return;
+   }
+   if(obj[f.key]&&!itInputDate(obj[f.key])){
+    error(new Error('Format '+f.label+' tidak valid. Pilih tanggal melalui kalender.'));
+    return;
+   }
+  }
  }
  S.saveBusy=true;
  const submit=$('submitRecord');
