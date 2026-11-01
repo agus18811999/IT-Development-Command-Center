@@ -437,6 +437,11 @@ body{background:#fbf9f8;color:#2a3142;letter-spacing:-.005em}
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
 }
+
+/* Live telemetry subtle confirmation; no layout shift or full rerender. */
+@keyframes itMetricPop{0%{filter:brightness(1.5);transform:translateY(-2px)}100%{filter:none;transform:none}}
+.it-metric-changed{animation:itMetricPop .36s ease-out}
+@media(prefers-reduced-motion:reduce){.it-metric-changed{animation:none}}
 </style></head>
 <body><div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="brand-mark">⌘</div><div><b>itcommand.</b><small>DEVELOPMENT COMMAND CENTER</small></div></div><nav class="nav-scroll" id="nav" aria-label="Main navigation"></nav><div class="sidefoot"><div class="avatar" id="sideAvatar">D</div><div class="user-short"><b id="sideName">Developer</b><small id="sideEmail">Loading account…</small></div><button type="button" data-action="logout" title="Logout">↪</button></div></aside><div class="mobile-backdrop" id="mobileBackdrop"></div>
 <div class="main">
@@ -680,9 +685,16 @@ async function cached(key,loader,ttl=35000){const hit=S.cache.get(key);if(hit?.p
 async function list(table,p={}){return cached('list:'+table+JSON.stringify(p),()=>ITAPI.call('list',p,table));}
 async function loadProjects(){const data=await cached('projects:all',()=>ITAPI.call('list',{page:1,pageSize:100,archived:'all'},'Projects'));S.projects=data.items;return S.projects;}
 async function moduleData(table,args){
+ const dataVersion=S.dataVersion||0;
  const projectHit=S.cache.get('projects:all');
  if(projectHit&&projectHit.value&&Date.now()-projectHit.t<35000){await loadProjects();return list(table,args);}
  try{const d=await ITAPI.call('moduleSnapshot',{table,...args});
+  // Ignore pre-mutation snapshots: the backend may reply after the user saved a new record.
+  if(dataVersion!==(S.dataVersion||0)){
+   const warm=S.cache.get('list:'+table+JSON.stringify(args))?.value;
+   console.info('[ITCOMMAND LIVE] Ignored an older API snapshot for '+table);
+   return warm||d.records;
+  }
   S.projects=d.projects.items;S.cache.set('projects:all',{value:d.projects,t:Date.now()});
   S.cache.set('list:'+table+JSON.stringify(args),{value:d.records,t:Date.now()});return d.records;
  }catch(e){if(e.code!=='UNKNOWN_ACTION')throw e;
@@ -699,7 +711,7 @@ async function renderRoute({keepContent=false}={}){
  const seq=++S.requestId,key=routeKey();
  const prev=S.viewCache.get(key);
  // Instant route restoration for a recently visited tab without another backend call.
- if(prev && Date.now()-prev.at<15000){
+ if(!keepContent && prev && Date.now()-prev.at<15000){
    S.currentTable=prev.table;S.currentList=prev.list;S.rows=prev.rows;setContent(prev.html);postRender();const ms=Math.round(performance.now()-navStarted);IT_TIMING.navigation.push({route:routeName,ms,source:'memory'});console.info(`[ITCOMMAND NAV] ${routeName} • ${ms}ms • MEMORY CACHE`);return;
  }
  // Clear the previous module synchronously. Never display module A beneath active tab B.
@@ -711,18 +723,16 @@ async function renderRoute({keepContent=false}={}){
    default:h=await generic(S.route);}
   if(seq!==S.requestId)return;
   const previousY=keepContent?window.scrollY:null;
-  let onlyRecords=false;
-  if(keepContent&&(routeName==='projects'||definitions[routeName])){
-   const oldMount=$('app').querySelector('[data-it-records]');
-   if(oldMount){
-    const temp=document.createElement('div');temp.innerHTML=h;
-    const newMount=temp.querySelector('[data-it-records]');
-    if(newMount){oldMount.replaceWith(newMount);onlyRecords=true;}
-   }
+  // Repaint live counters and records together after each confirmed mutation.
+  // The former implementation only replaced [data-it-records], leaving hero KPIs stale.
+  const livePatched=keepContent&&syncLiveRouteDOM(h,routeName);
+  if(!livePatched){
+   if(keepContent&&(routeName==='overview'||routeName==='analytics'))unchart();
+   setContent(h);
   }
-  if(!onlyRecords)setContent(h);
   if(previousY!==null&&typeof window.scrollTo==='function')window.scrollTo(0,previousY);
-  if(onlyRecords)console.info(`[ITCOMMAND UI] ${routeName} • list updated in place`);
+  if(livePatched)console.info(`[ITCOMMAND LIVE] ${routeName} • hero, totals & records synchronized without reload`);
+  IT_instantHeroMetrics();
   S.viewCache.set(key,{at:Date.now(),html:h,table:S.currentTable,list:S.currentList,rows:S.rows});
   if(S.viewCache.size>28)S.viewCache.delete(S.viewCache.keys().next().value);
   postRender();const ms=Math.round(performance.now()-navStarted);IT_TIMING.navigation.push({route:routeName,ms,source:'api'});if(IT_TIMING.navigation.length>60)IT_TIMING.navigation.shift();console.info(`[ITCOMMAND NAV] ${routeName} • ${ms}ms • API RENDER`);
@@ -730,6 +740,95 @@ async function renderRoute({keepContent=false}={}){
   if(keepContent){console.warn('[ITCOMMAND UI] Background repaint failed',e);toast('Data tersimpan. Coba refresh modul untuk memperbarui tampilan.','error');return;}
   setContent(head('Gagal memuat modul','Data belum berhasil diambil dari Google Apps Script. Data lain tetap aman.')+`<div class="panel panel-pad"><h3 style="font-size:15px;margin-bottom:10px">Koneksi perlu diperiksa</h3><p class="sub">${esc(e.message)}</p><div style="margin-top:18px">${btn('↻ Coba lagi','refresh')}</div></div>`);error(e);
  }
+}
+/**
+ * Reactively update the visible module after a confirmed Apps Script mutation.
+ * Keep the existing search/filter controls mounted (cursor, focus, dropdown state).
+ * Update the hero metrics and record area together. No page navigation or skeleton.
+ */
+function syncLiveRouteDOM(nextHTML,route){
+ if(route!=='projects'&&!definitions[route])return false;
+ const app=$('app'), oldRoot=app.firstElementChild;
+ const template=document.createElement('template');template.innerHTML=nextHTML.trim();
+ const nextRoot=template.content.firstElementChild;
+ if(!oldRoot||!nextRoot||oldRoot.tagName!==nextRoot.tagName)return false;
+ const oldRecords=oldRoot.querySelector('[data-it-records]');
+ const newRecords=nextRoot.querySelector('[data-it-records]');
+ const oldHero=oldRoot.querySelector(':scope > section.ov-hero-mesh');
+ const newHero=nextRoot.querySelector(':scope > section.ov-hero-mesh');
+ if(!oldRecords||!newRecords||!oldHero||!newHero)return false;
+ // Only the telemetry card is replaced; hero headline and button nodes stay mounted.
+ const oldMetrics=oldHero.querySelector('.ov-glass-card');
+ const newMetrics=newHero.querySelector('.ov-glass-card');
+ if(oldMetrics&&newMetrics){oldMetrics.replaceWith(newMetrics);}
+ else oldHero.replaceWith(newHero);
+ oldRecords.replaceWith(newRecords);
+ // Some generic routes have independently computed summary widgets (e.g. Costs).
+ // Replace those, while keeping the search/filter controls and hero undisturbed.
+ const oldChildren=Array.from(oldRoot.children),newChildren=Array.from(nextRoot.children);
+ if(oldChildren.length===newChildren.length){
+  oldChildren.forEach((node,i)=>{
+   if(node===oldHero||node===oldRecords||node.matches('.proj-control-deck'))return;
+   if(node.isConnected&&newChildren[i])node.replaceWith(newChildren[i]);
+  });
+ }
+ console.info('[ITCOMMAND LIVE] Metrics refreshed',{route,records:S.currentList?.total??S.rows?.length??0});
+ return true;
+}
+/**
+ * INSTANT REACTIVE HERO — uses the same confirmed state as the visible cards.
+ * We update individual text nodes, not the whole hero, so the UI never flashes.
+ * Source: Projects = project registry + current list total; other modules = current list.
+ */
+function IT_instantHeroMetrics(){
+ const hero=$('app')?.querySelector('section.ov-hero-mesh');
+ const telemetry=hero?.querySelector('.ov-glass-card');
+ if(!telemetry)return false;
+ const isProjects=S.route==='projects';
+ if(!isProjects&&!definitions[S.route])return false;
+ const rows=Array.isArray(S.currentList?.items)?S.currentList.items:[];
+ const allProjects=Array.isArray(S.projects)?S.projects:[];
+ const visibleProjects=allProjects.filter(p=>!p.deletedAt&&matchVisibleRecord(p,'Projects'));
+ const total=Number(S.currentList?.total);
+ const displayTotal=Number.isFinite(total)?total:(isProjects?visibleProjects.length:rows.length);
+ function labelNode(label){
+  return [...telemetry.querySelectorAll('span')].find(x=>x.textContent.trim().toLowerCase()===label.toLowerCase());
+ }
+ function setCountLine(label,value){
+  const valueEl=labelNode(label)?.nextElementSibling;
+  if(!valueEl)return;
+  const textNode=[...valueEl.childNodes].find(n=>n.nodeType===Node.TEXT_NODE);
+  const next=String(value)+' ';
+  if(textNode){if(textNode.nodeValue!==next){textNode.nodeValue=next;flash(valueEl);}}
+  else{valueEl.insertBefore(document.createTextNode(next),valueEl.firstChild);flash(valueEl);}
+ }
+ function flash(node){
+  node.classList.remove('it-metric-changed');void node.offsetWidth;
+  node.classList.add('it-metric-changed');
+ }
+ function setSecondary(label,value){
+  const labelEl=labelNode(label),valueEl=labelEl?.parentElement?.querySelector('b');
+  if(valueEl&&valueEl.textContent!==String(value)){
+   valueEl.textContent=String(value);flash(valueEl);
+  }
+ }
+ setCountLine('TOTAL RECORDED',displayTotal);
+ if(isProjects){
+  setSecondary('In Development',visibleProjects.filter(p=>!p.archivedAt&&/^(active|development)$/i.test(String(p.status||''))).length);
+  setSecondary('Completed',visibleProjects.filter(p=>!p.archivedAt&&/^completed$/i.test(String(p.status||''))).length);
+ }else{
+  const route=S.route;
+  let label='Kategori',value=new Set(rows.map(r=>r.category||r.type||r.platform||r.language).filter(Boolean)).size+' Jenis';
+  if(route==='bugs'){label='Open Bugs';value=rows.filter(r=>!/resolved|closed/i.test(String(r.status||''))).length+' Issue';}
+  else if(route==='features'){label='In Progress';value=rows.filter(r=>/developing|planned/i.test(String(r.status||''))).length+' Fitur';}
+  else if(route==='releases'){label='Planned';value=rows.filter(r=>/planned/i.test(String(r.status||''))).length+' Rilis';}
+  else if(route==='deployments'){label='Live Deploy';value=rows.filter(r=>/live/i.test(String(r.status||''))).length+' Live';}
+  else if(route==='costs'){label='Active Services';value=rows.filter(r=>r.status!=='Cancelled').length+' Layanan';}
+  setSecondary(label,value);
+  setSecondary('Proyek Terkait',new Set(rows.map(r=>r.projectId).filter(Boolean)).size+' Proyek');
+ }
+ console.info('[ITCOMMAND LIVE] Hero synchronized directly from record state',{route:S.route,total:displayTotal});
+ return true;
 }
 function postRender(){if(S.route==='overview')renderDashboardCharts();if(S.route==='analytics')renderAnalyticsCharts();if(S.route==='workspace'&&S.detailTab==='documents'){} }
 async function overview() {
@@ -1188,8 +1287,10 @@ async function projects() {
 
   // Real-time counts for telemetry pills
   const totalItems = d.total || 0;
-  const activeCount = d.items.filter(p => !p.archivedAt && /active|development/i.test(p.status || '')).length;
-  const completedCount = d.items.filter(p => /completed/i.test(p.status || '')).length;
+  // Counts must represent all matching projects, not only the current paginated page.
+  const summarySource=(S.projects.length?S.projects:d.items).filter(p=>matchVisibleRecord(p,'Projects'));
+  const activeCount=summarySource.filter(p=>!p.archivedAt&&/^(active|development)$/i.test(String(p.status||''))).length;
+  const completedCount=summarySource.filter(p=>!p.archivedAt&&/^completed$/i.test(String(p.status||''))).length;
 
   return `
   <div class="space-y-6 sm:space-y-7 max-w-full overflow-hidden">
@@ -3276,11 +3377,6 @@ function normalizePlanningBundleDates(bundle){
     const normalized=planningDateOnly(row[field]);
     if(normalized)row[field]=normalized;
    }
-   if(collection==='events'&&row.time){
-    const time=itInputTime(row.time);
-    if(time)row.time=time;
-    else console.warn('[ITCOMMAND TIME] Waktu event tidak dapat dinormalisasi', {eventId:row.id, time:String(row.time)});
-   }
   }
  }
  return bundle;
@@ -4141,47 +4237,13 @@ function itInputDate(value){
  }
  return '';
 }
-/* Time-only columns can arrive from Google Sheets as ISO Date objects, time fractions,
-   or HH:mm:ss. Normalize BEFORE binding to <input type=time> (accepts HH:mm). */
-function itInputTime(value){
- if(value==null||value==='')return '';
- if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<1){
-  const n=Math.round(value*1440)%1440;
-  return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
- }
- const raw=String(value).trim();
- if(!raw)return '';
- if(/^0(?:\.\d+)?$/.test(raw))return itInputTime(Number(raw));
- const clock=raw.match(/^(\d{1,2})[:.](\d{2})(?::(\d{2})(?:\.\d+)?)?$/);
- if(clock){
-  const h=Number(clock[1]),m=Number(clock[2]),sec=Number(clock[3]||0);
-  return h<24&&m<60&&sec<60?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'):'';
- }
- const ampm=raw.match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)\b/i);
- if(ampm){
-  const h=Number(ampm[1]),m=Number(ampm[2]);
-  if(h>=1&&h<=12&&m<60)return String((h%12)+(ampm[3].toUpperCase()==='PM'?12:0)).padStart(2,'0')+':'+String(m).padStart(2,'0');
- }
- // A Google Sheets native time may be serialized as 1899-12-30T...Z.
- // Treat full ISO timestamps as instants and display them in the spreadsheet's WIB zone.
- if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/i.test(raw)){
-  const date=new Date(raw);
-  if(Number.isFinite(date.getTime())){
-   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
-   const hh=parts.find(x=>x.type==='hour')?.value;
-   const mm=parts.find(x=>x.type==='minute')?.value;
-   return hh&&mm?hh+':'+mm:'';
-  }
- }
- return '';
-}
-function formField(f,value){const id='f_'+f.key,v=f.type==='date'?itInputDate(value):f.type==='time'?itInputTime(value):str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
- const unreadable=(f.type==='date'||f.type==='time')&&str(value).trim()&&!v;
+function formField(f,value){const id='f_'+f.key,v=f.type==='date'?itInputDate(value):str(value),required=f.required?'required':'',full=f.full||f.type==='textarea'?'full':'';let input;
+ const unreadable=f.type==='date'&&str(value).trim()&&!v;
  if(unreadable)console.warn('[ITCOMMAND DATE] Tanggal sumber tidak dapat dibaca, simpan diblokir sampai diperbaiki.',{field:f.key,source:str(value)});
  if(f.type==='textarea')input=`<textarea id="${id}" name="${esc(f.key)}" rows="${f.key==='content'||f.key==='code'?12:4}" ${required}>${esc(v)}</textarea>`;
  else if(f.type==='select')input=`<select id="${id}" name="${esc(f.key)}" ${required}><option value="">Select ${esc(f.label)}</option>${(f.options||[]).map(option=>`<option value="${esc(option)}" ${v===option?'selected':''}>${esc(option)}</option>`).join('')}</select>`;
  else input=`<input type="${f.type}" id="${id}" name="${esc(f.key)}" value="${esc(v)}" ${required} ${f.min!=null?'min="'+f.min+'"':''} ${f.max!=null?'max="'+f.max+'"':''} placeholder="${esc(f.label)}">`;
- return `<div class="form-field ${full}"><label for="${id}">${esc(f.label)}${f.required?' *':''}</label>${input}${unreadable?`<small class="form-hint" style="color:#bd4b34!important">Format ${f.type==='time'?'waktu':'tanggal'} lama tidak dikenali. Jangan simpan sebelum diperbaiki.</small>`:''}${f.type==='time'&&str(value).trim()?`<label style="display:flex;align-items:center;gap:8px;margin-top:9px;font-size:10px;color:#9a6670;cursor:pointer"><input type="checkbox" id="${id}_clear" style="width:auto;min-height:0;box-shadow:none" /> Hapus waktu tersimpan secara sengaja</label>`:''}${f.key==='secretRef'?'<small class="form-hint">Referensi nama saja, jangan isi nilai token/key.</small>':''}</div>`;
+ return `<div class="form-field ${full}"><label for="${id}">${esc(f.label)}${f.required?' *':''}</label>${input}${unreadable?'<small class="form-hint" style="color:#bd4b34!important">Format tanggal lama tidak dikenali. Jangan simpan sebelum diperbaiki.</small>':''}${f.key==='secretRef'?'<small class="form-hint">Referensi nama saja, jangan isi nilai token/key.</small>':''}</div>`;
 }
 function openDrawer(title,body,footer){$('drawerTitle').textContent=title;$('drawerBody').innerHTML=body;$('drawerFoot').innerHTML=footer||'';$('overlay').classList.add('open');$('drawer').classList.add('open');document.body.classList.add('overflow-hidden');}
 function closeDrawer(){S.formReqId++;document.activeElement?.blur();$('overlay').classList.remove('open');$('drawer').classList.remove('open');$('drawerBody').innerHTML='';$('drawerFoot').innerHTML='';document.body.classList.remove('overflow-hidden');}
@@ -4274,10 +4336,14 @@ function matchVisibleRecord(row,table){
  return !q||Object.values(row).some(v=>typeof v==='string'&&v.toLowerCase().includes(q));
 }
 function applyConfirmedMutation(table,action,result,payload){
+ S.dataVersion=(S.dataVersion||0)+1; // invalidate older in-flight module snapshots
  const id=result?.id||payload?.id;
  const deleting=action==='delete'||!!result?.deleted;
  const archivedAction=action==='archive'||action==='restore';
- const row=deleting?null:(!result?.id?{...payload,id}:result);
+ // Merge into old state to preserve existing status/category if a backend response is partial.
+ const previousRow=(table==='Projects'?S.projects:S.currentList?.items||[]).find?.(r=>r.id===id)||{};
+ const body=(result&&typeof result==='object'&&!Array.isArray(result))?result:{};
+ const row=deleting?null:{...previousRow,...payload,...body,id};
  const update=(items,filter=false)=>{
   const original=Array.isArray(items)?items:[];
   const oldIndex=original.findIndex(r=>r.id===id);
@@ -4325,9 +4391,12 @@ async function finishMutationUI(table,action,result,payload,originRoute){
  const inCurrent=applyConfirmedMutation(table,action,result,payload);
  // If the user switched tabs while saving, never force them back to the previous page.
  if(S.route!==originRoute)return;
- // Rebuild with warm memory data where possible; no skeleton, blank page or full navigation.
- // When there is no warm list (dashboard / workspace), refresh without blanking the visible page.
+ // Immediate, synchronous number update. Does NOT wait for any network request.
+ if(inCurrent)IT_instantHeroMetrics();
+ // Rebuild only the record list + telemetry from warm cache without skeleton/reload.
  await renderRoute({keepContent:true});
+ // Guard against an old DOM fragment or stale response replacing the latest counts.
+ IT_instantHeroMetrics();
 }
 async function saveForm(){
  const form=$('recordForm');
@@ -4349,22 +4418,6 @@ async function saveForm(){
     error(new Error('Format '+f.label+' tidak valid. Pilih tanggal melalui kalender.'));
     return;
    }
-  }
-  if(f.type==='time'){
-   const original=S.formOriginalRecord?.[f.key];
-   const clear=$('f_'+f.key+'_clear')?.checked===true;
-   if(clear){obj[f.key]='';obj._clearTime='true';continue;}
-   if(original&&!itInputTime(original)&&!obj[f.key]){
-    error(new Error('Waktu lama tidak dikenali. Periksa data di Google Sheets sebelum menyimpan.'));
-    return;
-   }
-   if(obj[f.key]&&!itInputTime(obj[f.key])){
-    error(new Error('Format waktu tidak valid. Pilih jam dan menit dengan benar.'));
-    return;
-   }
-   // An empty browser control must NEVER silently erase an existing time.
-   if(original&&!obj[f.key])obj[f.key]=itInputTime(original);
-   else if(obj[f.key])obj[f.key]=itInputTime(obj[f.key]);
   }
  }
  S.saveBusy=true;
